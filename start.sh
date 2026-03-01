@@ -52,6 +52,10 @@ else
     echo "Done. All dependencies installed."
 fi
 
+echo ""
+echo "Starting the BLE container..."
+echo
+
 podman run --userns=keep-id -v \
     /run/dbus:/run/dbus:z \
     -it localhost/imosudi/ble_engine:latest 
