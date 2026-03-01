@@ -5,7 +5,7 @@ FROM debian:latest
 RUN apt-get update && apt-get upgrade -y
 RUN apt-get install -y python3 python3-pydbus bluez
 
-COPY modules/* .
+COPY modules ./modules
 COPY entrypoint.sh .
 COPY main.py .
 #COPY main_updated.py .
