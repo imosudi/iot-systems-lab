@@ -53,7 +53,7 @@ blemanager.write_characteristic(led_uuid, new_value); time.sleep(1)
 
 btn_char_path = blemanager._get_characteristic_path(btn_uuid)
 btn = blemanager.read_characteristic(btn_uuid)
-print(btn.ReadValue({}))
+#print(btn.ReadValue({}))
 
 btn.onPropertiesChanged = value_change_handler
 btn.StartNotify()
