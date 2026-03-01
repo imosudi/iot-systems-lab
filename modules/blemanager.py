@@ -110,7 +110,8 @@ class BLEManager:
             raise RuntimeError("Characteristic not found")
 
         char = self.bus.get(self.BLUEZ_SERVICE, char_path)
-        return char.ReadValue({})
+        #char.ReadValue({})
+        return char 
 
     def disconnect(self):
         if self.device and self.device.Connected:
