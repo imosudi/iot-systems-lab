@@ -58,4 +58,4 @@ echo
 
 podman run --userns=keep-id -v \
     /run/dbus:/run/dbus:z \
-    -it localhost/io24m006/ble:latest 
+    -it io24m006/ble:latest 
