@@ -49,7 +49,7 @@ else
     echo ""
     echo "Installing missing packages: ${MISSING[*]}"
     sudo apt-get update
-    sudo apt-get upgrade
+    sudo apt-get upgrade -y
     sudo apt-get install -y "${MISSING[@]}"
     echo ""
     echo "Done. All dependencies installed."
