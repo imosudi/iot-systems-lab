@@ -29,6 +29,13 @@ else
     echo "python3-pydbus missing!"
     MISSING+=("python3-pydbus")
 fi
+# Check Numpy
+if python3 -c "import numpy" &>/dev/null; then
+    echo "Numpy installed"
+else
+    echo "Numpy missing!"
+    MISSING+=("python3-numpy")
+fi  
 
 # Check Podman
 if command -v podman &>/dev/null; then
