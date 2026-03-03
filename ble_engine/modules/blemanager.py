@@ -3,7 +3,7 @@
 # modules/blemanager.py
 
 import time
-from numpy import char
+#from numpy import char
 import pydbus
 from typing import Callable, Dict, Any
 
