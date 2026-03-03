@@ -17,6 +17,14 @@ else
     MISSING+=("bluez")
 fi
 
+# Check UID/GID mapping tools
+if command -v newuidmap &>/dev/null && command -v newgidmap &>/dev/null; then
+    echo "uidmap installed"
+else
+    echo "uidmap missing!"
+    MISSING+=("uidmap")
+fi
+
 if command -v python3 &>/dev/null; then
     echo "Python3 installed"
 else
