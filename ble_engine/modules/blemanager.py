@@ -1,11 +1,17 @@
+
+
 # modules/blemanager.py
 
 import time
+from numpy import char
 import pydbus
+from typing import Callable, Dict, Any
+
 
 
 class BLEManager:
     BLUEZ_SERVICE = "org.bluez"
+    GATT_CHAR_IFACE = "org.bluez.GattCharacteristic1"
 
     def __init__(self, adapter="hci0", timeout=20):
         self.adapter_path = f"/org/bluez/{adapter}"
@@ -31,8 +37,9 @@ class BLEManager:
     def _get_device_path(self, mac):
         objects = self.mngr.GetManagedObjects()
         for path, ifaces in objects.items():
-            dev = ifaces.get("org.bluez.Device1")
+            dev = ifaces.get(f"{self.BLUEZ_SERVICE}.Device1")
             if dev and dev.get("Address") == mac:
+                #print(f"Found device at {path}"); #time.sleep(100)
                 return path
         return None
 
@@ -43,7 +50,6 @@ class BLEManager:
             if char and char.get("UUID") == uuid and path.startswith(self.device_path):
                 return path
         return None
-
 
     def ensure_connected(self, mac_address):
         """
@@ -103,6 +109,34 @@ class BLEManager:
         char = self.bus.get(self.BLUEZ_SERVICE, char_path)
         char.WriteValue(value_bytes, {})
 
+    def read_characteristic_alt(self, uuid):
+        if not self.device or not self.device.ServicesResolved:
+            raise RuntimeError("Device not connected or services not resolved")
+
+        char_path = self._get_characteristic_path(uuid)
+        if not char_path:
+            raise RuntimeError("Characteristic not found")
+        #print(f"Reading characteristic at {char_path}")
+        #print(f"self.BLUEZ_SERVICE: {self.BLUEZ_SERVICE}")
+        char = self.bus.get(self.BLUEZ_SERVICE, char_path)
+        props = char.GetAll(f"{self.BLUEZ_SERVICE}.GattCharacteristic1")
+
+        #print(f"char: {char.GetAll('org.bluez.GattCharacteristic1')}")
+        #time.sleep(100)
+        if 'read' not in props.get('Flags', []):
+            #raise RuntimeError(
+            print(
+                f"Characteristic {uuid} does not support read (flags: {props['Flags']})"
+            )
+            return props, char
+        try:
+            char.ReadValue({})
+        except Exception as e:
+            print(f"Error reading characteristic: {e}")
+            #raise
+
+        return char 
+ 
     def read_characteristic(self, uuid):
         if not self.device or not self.device.ServicesResolved:
             raise RuntimeError("Device not connected or services not resolved")
@@ -112,10 +146,68 @@ class BLEManager:
             raise RuntimeError("Characteristic not found")
 
         char = self.bus.get(self.BLUEZ_SERVICE, char_path)
-        #char.ReadValue({})
-        return char 
 
+        value = char.ReadValue({})
+        return bytes(value)
+
+    def subscribe(self, uuid: str, callback: Callable[[str, Dict[str, Any]], None]):
+        """
+        Subscribe to notifications for a characteristic.
+        """
+        if not self.device or not self.device.ServicesResolved:
+            raise RuntimeError("Device not connected or services not resolved")
+
+        char_path = self._get_characteristic_path(uuid)
+        if not char_path:
+            raise RuntimeError(f"Characteristic {uuid} not found")
+
+        char = self.bus.get(self.BLUEZ_SERVICE, char_path)
+        
+        # Check if characteristic supports notifications
+        props = char.GetAll(self.GATT_CHAR_IFACE)
+        flags = props.get("Flags", [])
+        
+        if "notify" not in flags and "indicate" not in flags:
+            raise RuntimeError(f"Characteristic {uuid} does not support notifications")
+
+        # Define a wrapper that includes the UUID in the callback
+        """def value_change_handler(iface, prop_changed, prop_removed):
+            if 'Value' in prop_changed:
+                print(f"Value: {prop_changed['Value']}")"""
+                
+        def value_change_handler(iface, prop_changed, prop_removed):
+            if iface == self.GATT_CHAR_IFACE:
+                # Check if this is a notification (Value present)
+                if "Value" in prop_changed:
+                    callback(uuid, prop_changed)
+
+        # Connect to the PropertiesChanged signal
+        char.onPropertiesChanged = value_change_handler
+        
+        # Start notifications
+        char.StartNotify()
+        
+        return char
+    
+    def subscribe_old(self, uuid: str, callback: Callable):
+        """
+        Subscribe to notifications for a characteristic.
+        """
+        self._ensure_ready()
+
+        char = self._get_char_proxy(uuid)
+        flags = char.GetAll(self.GATT_CHAR_IFACE).get("Flags", [])
+
+        if "notify" not in flags and "indicate" not in flags:
+            raise RuntimeError(f"Characteristic {uuid} does not support notifications")
+
+        char.onPropertiesChanged = callback
+        char.StartNotify()
+        return char
+    
     def disconnect(self):
         if self.device and self.device.Connected:
             self.device.Disconnect()
             self._wait_for_condition(lambda: not self.device.Connected, 5)
+
+
