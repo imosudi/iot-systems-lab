@@ -31,7 +31,7 @@ def local_time():
     return timestamp
 
 
-class Decoder_alt:
+class Decoder:
     def decode_temperature(self, value: list[int]) -> float:
         """Returns temperature in °C"""
         raw = int.from_bytes(value, byteorder='little', signed=True)
@@ -42,7 +42,7 @@ class Decoder_alt:
         raw = int.from_bytes(value, byteorder='little', signed=False)
         return f"{raw / 100.0:.2f} %"
 
-class Decoder:
+class Decoder_nue:
     """Decoder for BLE characteristic values."""
     def decode_temperature(self, value) -> str:
         raw = int.from_bytes(bytes(value), byteorder='little', signed=True)
