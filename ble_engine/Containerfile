@@ -11,4 +11,9 @@ COPY main.py .
 #COPY main_updated.py .
 RUN chmod a+x entrypoint.sh
 
+# Upgrade pip and install numpy
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir numpy
+
+
 CMD ["./entrypoint.sh"]
