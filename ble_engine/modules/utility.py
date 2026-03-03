@@ -1,6 +1,6 @@
 # modules/utility.py
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Iterable
 
 
@@ -11,8 +11,9 @@ def normalise_bytes(value: Iterable[int] | bytes | bytearray) -> bytes:
 
 
 def local_time() -> str:
-    return datetime.now().astimezone().isoformat(timespec="seconds")
-
+    #return datetime.now().astimezone().isoformat(timespec="seconds")
+    return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
+    
 def value_change_handler(iface, prop_changed, prop_removed):
     if 'Value' in prop_changed:
         print(f"Value: {prop_changed['Value']}")
