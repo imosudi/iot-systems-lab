@@ -1,55 +1,30 @@
-
-
 # modules/utility.py
 
-
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Iterable
 
 
-def _normalise_bytes(value: Iterable[int] | bytes | bytearray) -> bytes:
-    """
-    DBus/pydbus value to bytes.
-    """
+def normalise_bytes(value: Iterable[int] | bytes | bytearray) -> bytes:
     if isinstance(value, (bytes, bytearray)):
         return bytes(value)
-    return bytes(value)
+    return bytes(int(v) & 0xFF for v in value)
 
 
-def value_change_handler(iface: str, changed: dict, invalidated: list):
-    """
-    DBus handler for BlueZ GATT characteristics.
-    """
-    value = changed.get("Value")
-    if value is not None:
-        print(f"Notification received: {bytes(value)}")
+def local_time() -> str:
+    return datetime.now().astimezone().isoformat(timespec="seconds")
 
-def local_time():
-    """ Generate local timestamp """
-    #timestamp = datetime.now(timezone.utc).isoformat()
-    timestamp = datetime.now().astimezone().isoformat()
-    return timestamp
-
+def value_change_handler(iface, prop_changed, prop_removed):
+    if 'Value' in prop_changed:
+        print(f"Value: {prop_changed['Value']}")
 
 class Decoder:
-    def decode_temperature(self, value: list[int]) -> float:
-        """Returns temperature in °C"""
-        raw = int.from_bytes(value, byteorder='little', signed=True)
-        return f"{raw / 100.0:.2f} °C"
 
-    def decode_humidity(self, value: list[int]) -> float:
-        """Returns relative humidity in %"""
-        raw = int.from_bytes(value, byteorder='little', signed=False)
-        return f"{raw / 100.0:.2f} %"
+    @staticmethod
+    def decode_temperature(value) -> float:
+        raw = int.from_bytes(value, "little", signed=True)
+        return raw / 100.0
 
-class Decoder_nue:
-    """Decoder for BLE characteristic values."""
-    def decode_temperature(self, value) -> str:
-        raw = int.from_bytes(bytes(value), byteorder='little', signed=True)
-        return f"{raw / 100:.2f} °C"
-
-    def decode_humidity(self, value) -> str:
-        raw = int.from_bytes(bytes(value), byteorder='little', signed=False)
-        return f"{raw / 100:.2f} %"
-    
-    
+    @staticmethod
+    def decode_humidity(value) -> float:
+        raw = int.from_bytes(value, "little", signed=False)
+        return raw / 100.0

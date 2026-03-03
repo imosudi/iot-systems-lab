@@ -3,7 +3,6 @@
 # modules/blemanager.py
 
 import time
-#from numpy import char
 import pydbus
 from typing import Callable, Dict, Any
 
@@ -53,8 +52,7 @@ class BLEManager:
 
     def ensure_connected(self, mac_address):
         """
-        Full deterministic BLE lifecycle:
-        power -> discover -> connect -> wait for services
+        Full deterministic BLE lifecycle: power on -> discover -> connect -> wait for services
         """
 
         # Ensure adapter powered
@@ -147,7 +145,8 @@ class BLEManager:
 
         char = self.bus.get(self.BLUEZ_SERVICE, char_path)
 
-        value = char.ReadValue({})
+        value = char.ReadValue({}); time.sleep(4)
+        #print(f"Raw value for {uuid}: {value}")
         return bytes(value)
 
     def subscribe(self, uuid: str, callback: Callable[[str, Dict[str, Any]], None]):
@@ -163,6 +162,10 @@ class BLEManager:
 
         char = self.bus.get(self.BLUEZ_SERVICE, char_path)
         
+
+        """char = self._get_char_proxy(uuid)
+        flags = char.GetAll(self.GATT_CHAR_IFACE).get("Flags", [])"""
+
         # Check if characteristic supports notifications
         props = char.GetAll(self.GATT_CHAR_IFACE)
         flags = props.get("Flags", [])
@@ -181,28 +184,14 @@ class BLEManager:
                 if "Value" in prop_changed:
                     callback(uuid, prop_changed)
 
+        #char.onPropertiesChanged = callback
+        
         # Connect to the PropertiesChanged signal
         char.onPropertiesChanged = value_change_handler
         
         # Start notifications
         char.StartNotify()
         
-        return char
-    
-    def subscribe_old(self, uuid: str, callback: Callable):
-        """
-        Subscribe to notifications for a characteristic.
-        """
-        self._ensure_ready()
-
-        char = self._get_char_proxy(uuid)
-        flags = char.GetAll(self.GATT_CHAR_IFACE).get("Flags", [])
-
-        if "notify" not in flags and "indicate" not in flags:
-            raise RuntimeError(f"Characteristic {uuid} does not support notifications")
-
-        char.onPropertiesChanged = callback
-        char.StartNotify()
         return char
     
     def disconnect(self):

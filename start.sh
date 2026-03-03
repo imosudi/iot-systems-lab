@@ -5,6 +5,8 @@ set -e
 
 MISSING=()
 
+echo ""
+echo ""
 echo "Checking dependencies..."
 
 # Check BlueZ

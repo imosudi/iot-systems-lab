@@ -1,67 +1,71 @@
+# modules/main.py
 
-
-# main.py - Main entry point for the BLE engine application
-# Imports
-import time
 from gi.repository import GLib
 
 from modules.blemanager import BLEManager
-from modules.utility import Decoder, local_time, value_change_handler
-from modules.artifacts import device_id, service_uuid, temp_uuid, hum_uuid
+from modules.utility import Decoder, local_time
 
-# Global definitions
-"""device_id = '94:A9:90:1C:78:15'
+DEVICE_ID = "94:A9:90:1C:78:15"
 
-service_uuid    = '00002a05-0000-1000-8000-00805f9b34fb'
-temp_uuid       = '00002a6e-0000-1000-8000-00805f9b34fb'
-hum_uuid        = '00002a6f-0000-1000-8000-00805f9b34fb'"""
-local_timestamp = local_time() 
+SERVICE_UUID = "00002a05-0000-1000-8000-00805f9b34fb"
+TEMP_UUID = "00002a6e-0000-1000-8000-00805f9b34fb"
+HUM_UUID = "00002a6f-0000-1000-8000-00805f9b34fb"
 
-blemanager = BLEManager()
-blemanager.ensure_connected(device_id)
 
-decoder = Decoder()
+ble = BLEManager()
+ble.ensure_connected(DEVICE_ID)
 
-# Read temperature
-temperature_raw = blemanager.read_characteristic(temp_uuid)
-temperature = decoder.decode_temperature(temperature_raw)
+# Initial read
+latest_temperature = Decoder.decode_temperature(
+    ble.read_characteristic(TEMP_UUID)
+)
 
-# Read humidity
-humidity_raw = blemanager.read_characteristic(hum_uuid)
-humidity =  decoder.decode_humidity(humidity_raw)
+latest_humidity = Decoder.decode_humidity(
+    ble.read_characteristic(HUM_UUID)
+)
 
-print(f"[{local_timestamp}]: {temperature}, {humidity}")
+print(f"[{local_time()}] {latest_temperature:.2f} °C, {latest_humidity:.2f} %")
+
 
 def notification_handler(uuid, properties):
+    global latest_temperature, latest_humidity
+
     value = properties.get("Value")
     if value is None:
         return
-    if uuid == service_uuid:
-        print("GATT database changed. Rediscovering services...")
-        blemanager.disconnect()
-        blemanager.ensure_connected(device_id)
 
-    
-    value_bytes = bytes(value)
+    updated = False
 
-    if uuid == temp_uuid or uuid == hum_uuid:
-        temperature = decoder.decode_temperature(value_bytes)
-        humidity    = decoder.decode_humidity(value_bytes)
-         
-        print(f"[{local_timestamp}]: {temperature}, {humidity}")
+    if uuid == TEMP_UUID:
+        new_temp = Decoder.decode_temperature(value)
+        if new_temp != latest_temperature:
+            latest_temperature = new_temp
+            updated = True
 
-# Notification handler subscription
-blemanager.subscribe(temp_uuid, notification_handler)
-blemanager.subscribe(hum_uuid, notification_handler)
-blemanager.subscribe(service_uuid, notification_handler)
+    elif uuid == HUM_UUID:
+        new_hum = Decoder.decode_humidity(value)
+        if new_hum != latest_humidity:
+            latest_humidity = new_hum
+            updated = True
+
+    elif uuid == SERVICE_UUID:
+        print(f"[{local_time()}] Service changed — reconnecting")
+        ble.disconnect()
+        ble.ensure_connected(DEVICE_ID)
+        return
+
+    if updated:
+        print(f"[{local_time()}] {latest_temperature:.2f} °C, {latest_humidity:.2f} %")
 
 
-mainloop = GLib.MainLoop()
+ble.subscribe(TEMP_UUID, notification_handler)
+ble.subscribe(HUM_UUID, notification_handler)
+ble.subscribe(SERVICE_UUID, notification_handler)
+
+loop = GLib.MainLoop()
+
 try:
-    mainloop.run()
+    loop.run()
 except KeyboardInterrupt:
-    mainloop.quit()
-    blemanager.disconnect()
-
-
-    
+    loop.quit()
+    ble.disconnect()
