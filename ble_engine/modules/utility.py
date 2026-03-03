@@ -11,6 +11,7 @@ def normalise_bytes(value: Iterable[int] | bytes | bytearray) -> bytes:
 
 
 def local_time() -> str:
+    """Local timezone"""
     #return datetime.now().astimezone().isoformat(timespec="seconds")
     return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
     
