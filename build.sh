@@ -45,4 +45,8 @@ echo
 
 cd ble_engine/
 
+echo ""
+echo "Podman build . -t io24m006/ble"
+echo
+
 podman build . -t io24m006/ble
