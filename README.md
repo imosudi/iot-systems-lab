@@ -6,7 +6,7 @@
 This lab covers hands-on IoT projects spanning sensor node design, edge gateways, and cloud backends, built on Linux, Podman, and distributed communication protocols. The project demonstrates real-time data generation, communication, and visualisation using an ESP32 microcontroller and a DHT22 temperature/humidity sensor.
 
 
-# What You Will Build
+# What Would Be Built
 
 - ESP32 firmware (Arduino/FreeRTOS) that reads temperature and humidity from a DHT22 sensor
 - Dual-channel data broadcast over UART serial and Bluetooth Low Energy (BLE)
