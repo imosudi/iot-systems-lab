@@ -28,7 +28,7 @@ This lab covers hands-on IoT projects spanning sensor node design, edge gateways
 | DHT22 Pin         | ESP32 Pin | Notes                                     |
 |-------------------|-----------|-------------------------------------------|
 | DHT – (GND)       | GND       | Ground                                    |
-| DHT + (VCC)       | +3V3      | 3.3 V supply — **do NOT use 5 V**         |
+| DHT + (VCC)       | +3V3      | 3.3 V supply (**do NOT use 5 V**)   |
 | DHT Signal Wire (S) | Pin 21  | GPIO 21, data line                        |
 
 > ⚠️ Ensure the +3V3 rail is used. Driving the DHT22 at 5 V may damage the ESP32 GPIO pin.
@@ -101,7 +101,7 @@ Note: This has been tested on Ubuntu 24.04 laptops (should work on desktops), Ra
 
 ## 6. License
 
-This project is licensed under the **BSD 3-Clause License** — see the [LICENSE](./LICENSE) file for details.
+This project is licensed under the **BSD 3-Clause License** - see the [LICENSE](./LICENSE) file for details.
 
 ```
 BSD 3-Clause License
