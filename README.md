@@ -113,7 +113,7 @@ This project is licensed under the **BSD 3-Clause License** - see the [LICENSE](
 ```
 BSD 3-Clause License
 
-Copyright (c) 2026, Mosudi Isiaka
+Copyright (c) 2026, Mosudi Isiaka, IoT and Systems FH Technikum Wien
 All rights reserved.
 ```
 
