@@ -96,6 +96,7 @@ All devices must have Bluetooth hardware support.
 
 Note: This has been tested on Ubuntu 24.04 laptops (should work on desktops), Raspberry Pi 5, Orange Pi (this necessitated the inclussing of UID/GID mapping tools installation to o run Podman in rootless mode), It should work on similar single board computers. All devices must have bluetooth support
 
+---
 
 
 ## 6. License
