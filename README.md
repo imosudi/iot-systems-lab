@@ -108,7 +108,7 @@ All rights reserved.
 ## 7. 👤 Author
 
 **Mosudi Isiaka O.**  
-📧 [mosudi.isiaka@gmail.com](mailto:mosudi.isiaka@gmail.com)  | [FH Technikum Wiem email](mailto:io24m006@technikum-wien.at)  
+📧 [mosudi.isiaka@gmail.com](mailto:mosudi.isiaka@gmail.com)  | [FH Technikum Wien email](mailto:io24m006@technikum-wien.at)  
 🌐 [https://mioemi.com](https://mioemi.com)   
 💻 [https://github.com/imosudi](https://github.com/imosudi)
 
