@@ -3,10 +3,18 @@
 ![IoT](https://img.shields.io/badge/IoT-Internet--of--Things-blue?logo=internetarchive)
 ![Distributed Systems](https://img.shields.io/badge/Distributed-Systems-indigo)
 ![Edge Computing](https://img.shields.io/badge/Edge-Computing-teal)
+![Sensor Networks](https://img.shields.io/badge/Sensor-Networks-blueviolet)
+![IoT Architecture](https://img.shields.io/badge/IoT-Architecture-1e3a8a)
+![IoT Lab](https://img.shields.io/badge/Type-IoT_Lab-lightgrey)
+![IoT Project](https://img.shields.io/badge/Project-IoT_Project-success)
 ![Linux](https://img.shields.io/badge/Linux-Platform-black?logo=linux)
 ![Podman](https://img.shields.io/badge/Podman-Containers-892CA0?logo=podman)
-![Microservices](https://img.shields.io/badge/Architecture-Microservices-9333ea)
 ![Edge Gateway](https://img.shields.io/badge/Role-Edge_Gateway-0ea5e9)
+![Microservices](https://img.shields.io/badge/Architecture-Microservices-9333ea)
+![Real-Time Data](https://img.shields.io/badge/Data-Real--Time-orange)
+![Telemetry](https://img.shields.io/badge/Telemetry-Streaming-yellow)
+---
+
 ## 1. Overview
 
 This lab covers hands-on IoT projects spanning sensor node design, edge gateways, and cloud backends, built on Linux, Podman, and distributed communication protocols. The project demonstrates real-time data generation, communication, and visualisation using an ESP32 microcontroller and a DHT22 temperature/humidity sensor.
