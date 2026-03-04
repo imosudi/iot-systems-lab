@@ -1,4 +1,4 @@
-# iot-systems-lab
+# ![alt text](iot_system_project.svg) IoT Systems Lab
 ---
 
 ## 1. Overview
