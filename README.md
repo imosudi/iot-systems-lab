@@ -37,7 +37,7 @@ This lab covers hands-on IoT projects spanning sensor node design, edge gateways
 
 ## 3. Firmware
 
-The ESP32 firmware will be provided as an Arduino/FreeRTOS project in a subsequent lab release. I might also share another if/when I am able to get permission. It performs the following tasks:
+The ESP32 firmware will be provided as an Arduino/FreeRTOS project in a subsequent lab release. I might also share an available firware if/when I am able to get permission. It performs the following tasks:
 
 1. Initialises the DHT22 sensor on GPIO 21
 2. Reads temperature (°C) and relative humidity (%) at a configurable interval
@@ -50,16 +50,9 @@ The ESP32 firmware will be provided as an Arduino/FreeRTOS project in a subseque
 
 ## 4. Software Setup
 
-### Prerequisites
-
-- Git
-- Podman (rootless mode recommended)
-- Bluetooth adapter (built-in or USB dongle)
-- UID/GID mapping tools on Orange Pi and similar SBCs (see Section 6)
-
 ### Power On the ESP32
 
-Connect the ESP32 to a USB port on your host machine. Confirm the device enumerates (e.g. `/dev/ttyUSB0` or `/dev/ttyACM0`) before proceeding.
+Connect the ESP32 to a USB port on your host machine. Confirm the device enumerates (e.g. `/dev/ttyUSB0` or `/dev/ttyACM0`) before proceeding. Complete the firware upload procedure, and allow the ESP32 to remain powered on.
 
 ### Clone the Repository
 
