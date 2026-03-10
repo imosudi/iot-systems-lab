@@ -1,10 +1,21 @@
+#!/bin/bash
+set -e
+echo ""
+echo " TLS certificate generation for Mosquitto broker and client"
+echo ""
 
+mkdir -p tlscertsops
+cd tlscertsops
+    
+# Request passphrase once upfront
+read -rsp "Enter pass phrase for CA key: " PASSPHRASE && echo
 
-mkdir mosquitto
+# ── Directory setup ──────────────────────────────────────────────
+mkdir -p mosquitto
 mkdir -p myca/{safe,certs}
-cd myca
 
-touch ca.cf
+# ── CA setup ─────────────────────────────────────────────────────
+cd myca
 
 cat > ca.cnf << EOF
 # OpenSSL CA configuration file
@@ -50,95 +61,64 @@ extendedKeyUsage = serverAuth
 keyUsage = critical,digitalSignature,keyEncipherment
 extendedKeyUsage = clientAuth
 EOF
+
 touch index.txt
 echo '01' > serial.txt
 
-openssl genrsa -des3 -verbose -out safe/ca.key 2048
+# Generate CA key (passphrase-protected) and self-signed certificate
+openssl genrsa -des3 -passout pass:"$PASSPHRASE" -verbose -out safe/ca.key 2048
 chmod 400 safe/ca.key
+openssl req -new -x509 -config ca.cnf -key safe/ca.key -passin pass:"$PASSPHRASE" -out certs/ca.crt -days 3650 -batch
 
-openssl req -new -x509 -config ca.cnf -key safe/ca.key -out certs/ca.crt -days 3650 -batch
-
-[
-# Where my pass phrase 
-openssl genrsa -des3 -passout pass:simplepassphrase -verbose -out safe/ca.key 2048
-chmod 400 safe/ca.key
-openssl req -new -x509 -config ca.cnf -key safe/ca.key -passin pass:simplepassphrase -out certs/ca.crt -days 3650 -batch
-]
-
-
-#mkdir mosquitto
-#cd mosquitto = simplepassphrase
-
+# ── Mosquitto broker certificate ──────────────────────────────────
 cd ../mosquitto
 
-# creating the private key
 openssl genrsa -verbose -out mosquitto.key 2048
 chmod 400 mosquitto.key
 
-# Certificate request  connfiguration file
-touch mosquitto.cnf
 cat > mosquitto.cnf << EOF
 [ req ]
 prompt=no
 distinguished_name = distinguished_name
 req_extensions = extensions
+
 [ distinguished_name ]
 countryName = AT
 stateOrProvinceName = Vienna
 organizationName = MIO-2
 commonName = iotgw.local
+
 [ extensions ]
 subjectAltName = @alt_names
+
 [alt_names]
 DNS.1 = iotgw.local
 DNS.2 = iotgw
 DNS.3 = mosquitto
 EOF
 
-# Certificate request
 openssl req -new -config mosquitto.cnf -key mosquitto.key -out mosquitto.csr -batch
 
-# This command generates no output, if successful.
-
-# Generating certificates
-cd ../myca/
-
-openssl ca -config ca.cnf -keyfile safe/ca.key -cert certs/ca.crt -policy signing_policy -extensions signing_node_req \
- -out certs/mosquitto.crt -outdir certs/ -in ../mosquitto/mosquitto.csr -notext -days 3650 -batch 
-Using configuration from ca.cnf
-
-
-[
-openssl ca -config ca.cnf -keyfile safe/ca.key -cert certs/ca.crt  -policy signing_policy -extensions signing_node_req \
- -passin pass:simplepassphrase -out certs/mosquitto.crt -outdir certs/ -in ../mosquitto/mosquitto.csr -notext -days 3650 -batch 
-Using configuration from ca.cnf
-]
-
-[
-openssl ca -config ca.cnf -keyfile safe/ca.key -cert certs/ca.crt -policy signing_policy -extensions signing_node_req \
-  -passin pass:io24m006 \
+cd ../myca
+openssl ca -config ca.cnf -keyfile safe/ca.key -cert certs/ca.crt -policy signing_policy \
+  -extensions signing_node_req -passin pass:"$PASSPHRASE" \
   -out certs/mosquitto.crt -outdir certs/ -in ../mosquitto/mosquitto.csr -notext -days 3650 -batch
-]
 
-# Send new certificate to the Mosquitto directory
 cp certs/mosquitto.crt ../mosquitto/
 
-# creating the client key
-
+# ── Client certificate ────────────────────────────────────────────
 cd ..
-
-mkdir client
+mkdir -p client
 cd client
+
 openssl genrsa -verbose -out client.key 2048
 chmod 400 client.key
 
-
-touch client.cnf
-
-cat >  client.cnf << EOF
+cat > client.cnf << EOF
 [ req ]
 prompt=no
 distinguished_name = distinguished_name
+
 [ distinguished_name ]
 countryName = AT
 stateOrProvinceName = Vienna
@@ -147,15 +127,15 @@ organizationName = MIO-2
 commonName = client
 EOF
 
-# Generating a request
 openssl req -new -config client.cnf -key client.key -out client.csr -batch
 
-
-cd ../myca/
-
-read -rsp "Enter pass phrase for safe/ca.key: " PASSPHRASE && echo
-openssl ca -config ca.cnf -keyfile safe/ca.key -cert certs/ca.crt -policy signing_policy -extensions \
-  signing_client_req -passin pass:"$PASSPHRASE" \
+cd ../myca
+openssl ca -config ca.cnf -keyfile safe/ca.key -cert certs/ca.crt -policy signing_policy \
+  -extensions signing_client_req -passin pass:"$PASSPHRASE" \
   -out certs/client.crt -outdir certs/ -in ../client/client.csr -notext -batch
 
-
+echo ""
+echo "Done. Certificates generated:"
+echo "  CA cert:         myca/certs/ca.crt"
+echo "  Mosquitto cert:  myca/certs/mosquitto.crt  +  mosquitto/mosquitto.crt"
+echo "  Client cert:     myca/certs/client.crt"

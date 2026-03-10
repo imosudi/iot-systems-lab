@@ -205,5 +205,12 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Dev sanitisation
 another_main.py
 backup/
+
+# TLS certificate generation for Mosquitto broker and client
+tlscertsops/client/
+tlscertsops/mosquitto/
+tlscertsops/myca/
