@@ -7,8 +7,8 @@ MOSQ_DIR="$PROJECT_DIR/mosquitto"
 CLIENT_DIR="$PROJECT_DIR/client"
 BLE_DIR="$PROJECT_DIR/ble_engine"
 
-DATA_DIR="$HOME/iot_storage"
-LAB_DIR="$HOME/lab-storage"
+DATA_DIR="$PROJECT_DIR/iot_storage"
+LAB_DIR="$PROJECT_DIR/lab-storage"
 
 echo "Setting up IoT lab environment..."
 
@@ -40,10 +40,10 @@ services:
 
   ble:
     build: ble_engine
+    #network_mode: host
+    privileged: true
     volumes:
       - /run/dbus:/run/dbus:rw,z
-    network_mode: host
-    privileged: true
 
   mosquitto:
     build: mosquitto
