@@ -116,6 +116,8 @@ mkdir -p client
 cd client
 
 chmod 755 client.key > /dev/null 2>&1 || true
+#chmod 755 certs/client.key > /dev/null 2>&1 || true
+
 openssl genrsa -verbose -out client.key 2048
 chmod 400 client.key
 
@@ -141,6 +143,43 @@ openssl ca -config ca.cnf -keyfile safe/ca.key -cert certs/ca.crt -policy signin
 
 cp certs/client.crt ../client/
 cp certs/ca.crt ../client/
+
+# ── BLE certificate ────────────────────────────────────────────
+cd ..
+mkdir -p ble_engine
+cd ble_engine
+mkdir -p certs
+
+chmod 755 ble.key > /dev/null 2>&1 || true
+#chmod 755 certs/ble.key > /dev/null 2>&1 || true
+
+openssl genrsa -verbose -out ble.key 2048
+chmod 400 ble.key
+
+cat > ble.cnf << EOF
+[ req ]
+prompt=no
+distinguished_name = distinguished_name
+
+[ distinguished_name ]
+countryName = AT
+stateOrProvinceName = Vienna
+localityName = Vienna
+organizationName = MIO-2
+commonName = ble
+EOF
+
+openssl req -new -config ble.cnf -key ble.key -out ble.csr -batch
+
+cd ../myca
+openssl ca -config ca.cnf -keyfile safe/ca.key -cert certs/ca.crt -policy signing_policy \
+  -extensions signing_client_req -passin pass:"$PASSPHRASE" \
+  -out certs/ble.crt -outdir certs/ -in ../ble_engine/ble.csr -notext -batch
+
+cp certs/ble.crt ../ble_engine/
+cp certs/ca.crt ../ble_engine/
+
+
 
 echo ""
 echo "Done. Certificates generated:"

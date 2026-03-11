@@ -5,6 +5,7 @@ PROJECT_DIR="$(pwd)"
 CERT_DIR="$PROJECT_DIR/tlscertsops"
 MOSQ_DIR="$PROJECT_DIR/mosquitto"
 CLIENT_DIR="$PROJECT_DIR/client"
+BLE_DIR="$PROJECT_DIR/ble_engine"
 
 DATA_DIR="$HOME/iot_storage"
 LAB_DIR="$HOME/lab-storage"
@@ -17,6 +18,7 @@ echo "Setting up IoT lab environment..."
 mkdir -p \
   "$MOSQ_DIR/certs" \
   "$CLIENT_DIR/certs" \
+  "$BLE_DIR/certs" \
   "$DATA_DIR/mosquitto-data-storage" \
   "$DATA_DIR/mosquitto-log-storage" \
   "$LAB_DIR"
@@ -26,6 +28,7 @@ mkdir -p \
 # ─────────────────────────────────────────────────────────────
 cp "$CERT_DIR/mosquitto/"{ca.crt,mosquitto.crt,mosquitto.key} "$MOSQ_DIR/certs/"
 cp "$CERT_DIR/client/"{ca.crt,client.crt,client.key} "$CLIENT_DIR/certs/"
+cp "$CERT_DIR/ble/"{ca.crt,ble.crt,ble.key} "$BLE_DIR/certs/"
 
 # ─────────────────────────────────────────────────────────────
 # podman-compose.yml
