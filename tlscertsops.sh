@@ -1,4 +1,5 @@
 #!/bin/bash
+# tlscertsops.sh - TLS certificate generation for Mosquitto broker and client
 set -e
 echo ""
 echo " TLS certificate generation for Mosquitto broker and client"
@@ -66,6 +67,7 @@ touch index.txt
 echo '01' > serial.txt
 
 # Generate CA key (passphrase-protected) and self-signed certificate
+chmod 755 safe/ca.key > /dev/null 2>&1 || true
 openssl genrsa -des3 -passout pass:"$PASSPHRASE" -verbose -out safe/ca.key 2048
 chmod 400 safe/ca.key
 openssl req -new -x509 -config ca.cnf -key safe/ca.key -passin pass:"$PASSPHRASE" -out certs/ca.crt -days 3650 -batch
@@ -73,6 +75,7 @@ openssl req -new -x509 -config ca.cnf -key safe/ca.key -passin pass:"$PASSPHRASE
 # ── Mosquitto broker certificate ──────────────────────────────────
 cd ../mosquitto
 
+chmod 755 mosquitto.key > /dev/null 2>&1 || true
 openssl genrsa -verbose -out mosquitto.key 2048
 chmod 400 mosquitto.key
 
@@ -105,12 +108,14 @@ openssl ca -config ca.cnf -keyfile safe/ca.key -cert certs/ca.crt -policy signin
   -out certs/mosquitto.crt -outdir certs/ -in ../mosquitto/mosquitto.csr -notext -days 3650 -batch
 
 cp certs/mosquitto.crt ../mosquitto/
+cp certs/ca.crt ../mosquitto/
 
 # ── Client certificate ────────────────────────────────────────────
 cd ..
 mkdir -p client
 cd client
 
+chmod 755 client.key > /dev/null 2>&1 || true
 openssl genrsa -verbose -out client.key 2048
 chmod 400 client.key
 
@@ -134,8 +139,11 @@ openssl ca -config ca.cnf -keyfile safe/ca.key -cert certs/ca.crt -policy signin
   -extensions signing_client_req -passin pass:"$PASSPHRASE" \
   -out certs/client.crt -outdir certs/ -in ../client/client.csr -notext -batch
 
+cp certs/client.crt ../client/
+cp certs/ca.crt ../client/
+
 echo ""
 echo "Done. Certificates generated:"
-echo "  CA cert:         myca/certs/ca.crt"
+echo "  CA cert:         myca/certs/ca.crt; mosquitto/ca.crt"
 echo "  Mosquitto cert:  myca/certs/mosquitto.crt  +  mosquitto/mosquitto.crt"
 echo "  Client cert:     myca/certs/client.crt"
