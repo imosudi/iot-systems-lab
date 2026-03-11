@@ -115,6 +115,19 @@ RUN touch /mosquitto/config/passwd \
 EOF
 
 # ─────────────────────────────────────────────────────────────
+# Client Entrypoint
+# ─────────────────────────────────────────────────────────────
+cat > "$CLIENT_DIR/Containerfile" <<'EOF'
+#!/bin/bash
+echo ""
+echo ""
+#entrypoint.sh
+printf "MQTT [BLE Subscriber] container started...\n"
+
+exec python3 main.py
+EOF
+
+# ─────────────────────────────────────────────────────────────
 # Client Containerfile
 # ─────────────────────────────────────────────────────────────
 cat > "$CLIENT_DIR/Containerfile" <<'EOF'
@@ -128,9 +141,13 @@ RUN apt-get update \
 WORKDIR /client
 
 COPY certs /client/certs
+COPY entrypoint.sh .
 COPY main.py .
 
-CMD ["python3", "main.py"]
+RUN chmod a+x entrypoint.sh
+
+
+CMD ["./entrypoint.sh"]
 EOF
 
 # ─────────────────────────────────────────────────────────────
