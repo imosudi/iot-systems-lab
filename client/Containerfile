@@ -6,7 +6,7 @@ RUN apt-get update \
 
 WORKDIR /client
 
-COPY certs/* /client/certs
+COPY certs /client/certs
 COPY main.py .
 
 CMD ["python3", "main.py"]

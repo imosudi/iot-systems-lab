@@ -7,6 +7,57 @@ from modules.utility import Decoder, local_time
 from artifacts import device_id, temp_uuid, hum_uuid, service_uuid
 #import artifacts
 
+# ── MQTT Section ──────────────────────────────────────────────────
+
+import paho.mqtt.client as mqtt
+
+BROKER = "mosquitto"
+PORT   = 8883
+
+CA_CERT  = "/ble_certs/certs/ca.crt"
+CRT_FILE = "/ble_certs/certs/ble.crt"
+KEY_FILE = "/ble_certs/certs/ble.key"
+
+TOPIC_TEMPERATURE = "sensor/temperature"
+TOPIC_HUMIDITY    = "sensor/humidity"
+
+
+# ── MQTT callbacks ────────────────────────────────────────────────
+
+def on_connect(client, userdata, flags, reason_code, properties):
+    if reason_code == 0:
+        print("[mqtt] Connected successfully")
+    else:
+        print(f"[mqtt] Connection failed: {reason_code}")
+
+
+def on_disconnect(client, userdata, flags, reason_code, properties):
+    print(f"[mqtt] Disconnected (reason code: {reason_code})")
+
+
+# ── MQTT client initialisation ────────────────────────────────────
+
+mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+
+mqtt_client.on_connect    = on_connect
+mqtt_client.on_disconnect = on_disconnect
+
+mqtt_client.tls_set(
+    ca_certs=CA_CERT,
+    certfile=CRT_FILE,
+    keyfile=KEY_FILE
+)
+
+# Required when using self-signed CA
+mqtt_client.tls_insecure_set(True)
+
+mqtt_client.connect(BROKER, PORT, 60)
+
+# Start background network thread
+mqtt_client.loop_start()
+
+# ── End MQTT Section ──────────────────────────────────────────────
+
 ble = BLEManager()
 ble.ensure_connected(device_id)
 
@@ -52,6 +103,20 @@ def notification_handler(uuid, properties):
     if updated:
         print(f"[{local_time()}] {latest_temperature:.2f} °C, {latest_humidity:.2f} %")
 
+        # Publish to MQTT
+        mqtt_client.publish(
+            TOPIC_TEMPERATURE,
+            f"{latest_temperature:.2f}",
+            qos=1,
+            retain=False
+        )
+
+        mqtt_client.publish(
+            TOPIC_HUMIDITY,
+            f"{latest_humidity:.2f}",
+            qos=1,
+            retain=False
+        )
 
 ble.subscribe(temp_uuid, notification_handler)
 ble.subscribe(hum_uuid, notification_handler)
