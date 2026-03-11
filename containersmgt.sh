@@ -137,7 +137,7 @@ echo ""
 #entrypoint.sh
 printf "MQTT [BLE Subscriber] container started...\n"
 
-exec python3 main.py
+exec python3 -u main.py
 EOF
 
 # ─────────────────────────────────────────────────────────────
@@ -218,7 +218,7 @@ echo ""
 #entrypoint.sh
 printf "MQTT Client container started...\n"
 
-exec python3 main.py
+exec python3 -u main.py
 EOF
 
 echo ""

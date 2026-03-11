@@ -3,6 +3,7 @@
 # modules/blemanager.py
 
 import time
+import subprocess
 import pydbus
 from typing import Callable, Dict, Any
 
@@ -53,7 +54,17 @@ class BLEManager:
     def ensure_connected(self, mac_address):
         """
         Full deterministic BLE lifecycle: power on -> discover -> connect -> wait for services
+        Uses bluetoothctl for scanning and connection
         """
+
+        # Run bluetoothctl scan on (non-blocking)
+        print("Starting Bluetooth scan...")
+        scan_process = subprocess.Popen(
+            ["bluetoothctl", "scan", "on"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+        time.sleep(1)  # Give scan time to start
 
         # Ensure adapter powered
         if not self.adapter.Powered:
@@ -75,14 +86,25 @@ class BLEManager:
             print(f"Alert: Device with MAC address {mac_address} is not reachable/available. Continuing to wait...")
             print("Press Ctrl+C to stop the application")
 
-        # Stop discovery
+        # Stop discovery and scan
+        print("Stopping Bluetooth scan...")
+        subprocess.run(["bluetoothctl", "scan", "off"], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         self.adapter.StopDiscovery()
         self._wait_for_condition(lambda: not self.adapter.Discovering, 5)
+        scan_process.terminate()
 
-        # Connect
-        if not self.device.Connected:
-            self.device.Connect()
+        # Connect using bluetoothctl
+        print(f"Connecting to device {mac_address}...")
+        result = subprocess.run(
+            ["bluetoothctl", "connect", mac_address],
+            capture_output=True,
+            text=True,
+            check=False
+        )
+        if result.returncode != 0:
+            print(f"bluetoothctl connect result: {result.stdout.strip()} {result.stderr.strip()}")
 
+        # Wait for connection
         if not self._wait_for_condition(lambda: self.device.Connected):
             raise RuntimeError("Connection failed")
 

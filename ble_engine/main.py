@@ -98,36 +98,32 @@ def notification_handler(uuid, properties):
         if new_temp != latest_temperature:
             latest_temperature = new_temp
             updated = True
+            print(f"[{local_time()}] {latest_temperature:.2f} °C, {latest_humidity:.2f} %")
+            mqtt_client.publish(
+                TOPIC_TEMPERATURE,
+                f"{latest_temperature:.2f}",
+                qos=1,
+                retain=False
+            )
 
     elif uuid == hum_uuid:
         new_hum = Decoder.decode_humidity(value)
         if new_hum != latest_humidity:
             latest_humidity = new_hum
             updated = True
+            print(f"[{local_time()}] {latest_temperature:.2f} °C, {latest_humidity:.2f} %")
+            mqtt_client.publish(
+                TOPIC_HUMIDITY,
+                f"{latest_humidity:.2f}",
+                qos=1,
+                retain=False
+            )
 
     elif uuid == service_uuid:
         print(f"[{local_time()}] Service changed — reconnecting")
         ble.disconnect()
         ble.ensure_connected(device_id)
         return
-    print(f"[{local_time()}] {latest_temperature:.2f} °C, {latest_humidity:.2f} %")
-    if updated:
-        print(f"[{local_time()}] {latest_temperature:.2f} °C, {latest_humidity:.2f} %")
-
-        # Publish to MQTT
-        mqtt_client.publish(
-            TOPIC_TEMPERATURE,
-            f"{latest_temperature:.2f}",
-            qos=1,
-            retain=False
-        )
-
-        mqtt_client.publish(
-            TOPIC_HUMIDITY,
-            f"{latest_humidity:.2f}",
-            qos=1,
-            retain=False
-        )
 
 ble.subscribe(temp_uuid, notification_handler)
 ble.subscribe(hum_uuid, notification_handler)
