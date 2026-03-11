@@ -5,7 +5,7 @@ echo ""
 echo " TLS certificate generation for Mosquitto broker and client"
 echo ""
 
-mkdir -p tlscertsops
+mkdir -p tlscertsops iot_storage/mosquitto-data-storage iot_storage/mosquitto-log-storage
 cd tlscertsops
     
 # Request passphrase once upfront
