@@ -40,28 +40,41 @@ services:
 
   ble:
     build: ble_engine
-    #network_mode: host
     privileged: true
     volumes:
       - /run/dbus:/run/dbus:rw,z
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "python3 main.py"]
+      interval: 5s
+      retries: 5
+      start_period: 5s
 
   mosquitto:
     build: mosquitto
     restart: unless-stopped
+    depends_on:
+      ble:
+        condition: service_healthy
     environment:
       TZ: Europe/Vienna
     ports:
       - "8883:8883"
     volumes:
-      - ${DATA_DIR}/mosquitto-data-storage:/mosquitto/data
-      - ${DATA_DIR}/mosquitto-log-storage:/mosquitto/log
+      - /home/mosud/Documents/per/FH/2ND Semester/IoT Systems Development/iot-systems-lab/iot_storage/mosquitto-data-storage:/mosquitto/data
+      - /home/mosud/Documents/per/FH/2ND Semester/IoT Systems Development/iot-systems-lab/iot_storage/mosquitto-log-storage:/mosquitto/log
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:Z
+    healthcheck:
+      test: ["CMD", "mosquitto_sub", "-h", "localhost", "-t", "test", "-C", "1"]
+      interval: 5s
+      retries: 5
+      start_period: 5s
 
   client:
     build: client
     restart: unless-stopped
     depends_on:
-      - mosquitto
+      mosquitto:
+        condition: service_healthy
 EOF
 
 # ─────────────────────────────────────────────────────────────
