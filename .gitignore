@@ -211,6 +211,7 @@ another_main.py
 backup/
 
 # TLS certificate generation for Mosquitto broker and client
+tklscertsops/
 tlscertsops/client/
 tlscertsops/mosquitto/
 tlscertsops/myca/
