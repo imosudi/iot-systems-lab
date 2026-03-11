@@ -13,7 +13,8 @@ from artifacts import device_id, temp_uuid, hum_uuid, service_uuid
 
 import paho.mqtt.client as mqtt
 
-BROKER = "mosquitto"
+#BROKER = "mosquitto"
+BROKER = "localhost"
 PORT   = 8883
 
 CA_CERT  = "/ble_certs/certs/ca.crt"
