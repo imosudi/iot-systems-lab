@@ -66,11 +66,14 @@ class BLEManager:
             raise RuntimeError("Discovery failed to start")
 
         # Wait for device discovery
-        if not self._wait_for_condition(
-            lambda: self._resolve_device(mac_address)
-        ):
-            self.adapter.StopDiscovery()
-            raise RuntimeError("Device not discovered")
+        print(f"Searching for device with MAC address: {mac_address}...")
+        while True:
+            if self._wait_for_condition(
+                lambda: self._resolve_device(mac_address), timeout=5
+            ):
+                break
+            print(f"Alert: Device with MAC address {mac_address} is not reachable/available. Continuing to wait...")
+            print("Press Ctrl+C to stop the application")
 
         # Stop discovery
         self.adapter.StopDiscovery()
