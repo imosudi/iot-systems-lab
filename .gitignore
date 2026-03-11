@@ -214,6 +214,7 @@ backup/
 tklscertsops/
 tlscertsops/client/
 tlscertsops/mosquitto/
+tlscertsops/ble/
 tlscertsops/myca/
 ble_engine/certs/
 client/certs/

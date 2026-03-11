@@ -1,6 +1,8 @@
+
 # modules/main.py
 
 from gi.repository import GLib
+import time
 
 from modules.blemanager import BLEManager
 from modules.utility import Decoder, local_time
@@ -51,7 +53,15 @@ mqtt_client.tls_set(
 # Required when using self-signed CA
 mqtt_client.tls_insecure_set(True)
 
-mqtt_client.connect(BROKER, PORT, 60)
+#mqtt_client.connect(BROKER, PORT, 60)
+while True:
+    try:
+        mqtt_client.connect(BROKER, PORT, 60)
+        break
+    except Exception:
+        print("Waiting for MQTT broker...")
+        time.sleep(2)
+
 
 # Start background network thread
 mqtt_client.loop_start()

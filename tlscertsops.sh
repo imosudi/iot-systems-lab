@@ -1,29 +1,36 @@
-The script `tlscertsops.sh` :
 #!/bin/bash
-# tlscertsops.sh - TLS certificate generation for Mosquitto broker and client
+# tlscertsops.sh - TLS certificate generation for Mosquitto broker and clients
+
 set -e
+
 echo ""
-echo " TLS certificate generation for Mosquitto broker and client"
+echo " TLS certificate generation for Mosquitto broker and clients"
 echo ""
 
-mkdir -p tlscertsops 
-mkdir -p iot_storage/mosquitto-data-storage 
+mkdir -p tlscertsops
+mkdir -p iot_storage/mosquitto-data-storage
 mkdir -p iot_storage/mosquitto-log-storage
 
 cd tlscertsops
-    
-# Request passphrase once upfront
+
+# Request passphrase once
 read -rsp "Enter pass phrase for CA key: " PASSPHRASE && echo
 
-# ── Directory setup ──────────────────────────────────────────────
+# ── Directory structure ─────────────────────────────────────────
+
 mkdir -p mosquitto
+mkdir -p client
+mkdir -p ble
 mkdir -p myca/{safe,certs}
 
-# ── CA setup ─────────────────────────────────────────────────────
+# ── CA setup ───────────────────────────────────────────────────
+
+echo ""
+echo "Setting up Certificate Authority..."
+
 cd myca
 
 cat > ca.cnf << EOF
-# OpenSSL CA configuration file
 [ ca ]
 default_ca = CA_default
 
@@ -35,7 +42,6 @@ default_md = sha256
 copy_extensions = copy
 unique_subject = no
 
-# Used to create the CA certificate.
 [ req ]
 prompt=no
 distinguished_name = distinguished_name
@@ -45,23 +51,20 @@ x509_extensions = extensions
 countryName = AT
 stateOrProvinceName = Vienna
 organizationName = MIO-2
-commonName = MIO-2
+commonName = MIO-2-Root-CA
 
 [ extensions ]
 keyUsage = critical,digitalSignature,nonRepudiation,keyEncipherment,keyCertSign
 basicConstraints = critical,CA:true,pathlen:1
 
-# Common policy for nodes and users.
 [ signing_policy ]
 organizationName = supplied
 commonName = optional
 
-# Used to sign node certificates.
 [ signing_node_req ]
 keyUsage = critical,digitalSignature,keyEncipherment
 extendedKeyUsage = serverAuth
 
-# Used to sign client certificates.
 [ signing_client_req ]
 keyUsage = critical,digitalSignature,keyEncipherment
 extendedKeyUsage = clientAuth
@@ -70,17 +73,32 @@ EOF
 touch index.txt
 echo '01' > serial.txt
 
-# Generate CA key (passphrase-protected) and self-signed certificate
-chmod 755 safe/ca.key > /dev/null 2>&1 || true
-openssl genrsa -des3 -passout pass:"$PASSPHRASE" -verbose -out safe/ca.key 2048
-chmod 400 safe/ca.key
-openssl req -new -x509 -config ca.cnf -key safe/ca.key -passin pass:"$PASSPHRASE" -out certs/ca.crt -days 3650 -batch
+echo "Generating CA private key..."
 
-# ── Mosquitto broker certificate ──────────────────────────────────
+openssl genrsa -des3 \
+  -passout pass:"$PASSPHRASE" \
+  -out safe/ca.key 2048
+
+chmod 400 safe/ca.key
+
+echo "Generating CA certificate..."
+
+openssl req -new -x509 \
+  -config ca.cnf \
+  -key safe/ca.key \
+  -passin pass:"$PASSPHRASE" \
+  -out certs/ca.crt \
+  -days 3650 \
+  -batch
+
+# ── Mosquitto broker certificate ───────────────────────────────
+
+echo ""
+echo "Generating Mosquitto broker certificate..."
+
 cd ../mosquitto
 
-chmod 755 mosquitto.key > /dev/null 2>&1 || true
-openssl genrsa -verbose -out mosquitto.key 2048
+openssl genrsa -out mosquitto.key 2048
 chmod 400 mosquitto.key
 
 cat > mosquitto.cnf << EOF
@@ -93,36 +111,50 @@ req_extensions = extensions
 countryName = AT
 stateOrProvinceName = Vienna
 organizationName = MIO-2
-commonName = iotgw.local
+commonName = mosquitto
 
 [ extensions ]
 subjectAltName = @alt_names
 
 [alt_names]
-DNS.1 = iotgw.local
-DNS.2 = iotgw
-DNS.3 = mosquitto
+DNS.1 = mosquitto
+DNS.2 = localhost
+DNS.3 = iotgw
 EOF
 
-openssl req -new -config mosquitto.cnf -key mosquitto.key -out mosquitto.csr -batch
+openssl req -new \
+  -config mosquitto.cnf \
+  -key mosquitto.key \
+  -out mosquitto.csr \
+  -batch
 
 cd ../myca
-openssl ca -config ca.cnf -keyfile safe/ca.key -cert certs/ca.crt -policy signing_policy \
-  -extensions signing_node_req -passin pass:"$PASSPHRASE" \
-  -out certs/mosquitto.crt -outdir certs/ -in ../mosquitto/mosquitto.csr -notext -days 3650 -batch
+
+openssl ca \
+  -config ca.cnf \
+  -keyfile safe/ca.key \
+  -cert certs/ca.crt \
+  -policy signing_policy \
+  -extensions signing_node_req \
+  -passin pass:"$PASSPHRASE" \
+  -out certs/mosquitto.crt \
+  -outdir certs/ \
+  -in ../mosquitto/mosquitto.csr \
+  -notext \
+  -days 3650 \
+  -batch
 
 cp certs/mosquitto.crt ../mosquitto/
 cp certs/ca.crt ../mosquitto/
 
-# ── Client certificate ────────────────────────────────────────────
-cd ..
-mkdir -p client
-cd client
+# ── MQTT client certificate ────────────────────────────────────
 
-chmod 755 client.key > /dev/null 2>&1 || true
-#chmod 755 certs/client.key > /dev/null 2>&1 || true
+echo ""
+echo "Generating MQTT client certificate..."
 
-openssl genrsa -verbose -out client.key 2048
+cd ../client
+
+openssl genrsa -out client.key 2048
 chmod 400 client.key
 
 cat > client.cnf << EOF
@@ -135,29 +167,42 @@ countryName = AT
 stateOrProvinceName = Vienna
 localityName = Vienna
 organizationName = MIO-2
-commonName = client
+commonName = mqtt-client
 EOF
 
-openssl req -new -config client.cnf -key client.key -out client.csr -batch
+openssl req -new \
+  -config client.cnf \
+  -key client.key \
+  -out client.csr \
+  -batch
 
 cd ../myca
-openssl ca -config ca.cnf -keyfile safe/ca.key -cert certs/ca.crt -policy signing_policy \
-  -extensions signing_client_req -passin pass:"$PASSPHRASE" \
-  -out certs/client.crt -outdir certs/ -in ../client/client.csr -notext -batch
+
+openssl ca \
+  -config ca.cnf \
+  -keyfile safe/ca.key \
+  -cert certs/ca.crt \
+  -policy signing_policy \
+  -extensions signing_client_req \
+  -passin pass:"$PASSPHRASE" \
+  -out certs/client.crt \
+  -outdir certs/ \
+  -in ../client/client.csr \
+  -notext \
+  -days 3650 \
+  -batch
 
 cp certs/client.crt ../client/
 cp certs/ca.crt ../client/
 
-# ── BLE certificate ────────────────────────────────────────────
-cd ..
-mkdir -p ble_engine
-cd ble_engine
-mkdir -p certs
+# ── BLE publisher certificate ──────────────────────────────────
 
-chmod 755 ble.key > /dev/null 2>&1 || true
-#chmod 755 certs/ble.key > /dev/null 2>&1 || true
+echo ""
+echo "Generating BLE publisher certificate..."
 
-openssl genrsa -verbose -out ble.key 2048
+cd ../ble
+
+openssl genrsa -out ble.key 2048
 chmod 400 ble.key
 
 cat > ble.cnf << EOF
@@ -170,26 +215,55 @@ countryName = AT
 stateOrProvinceName = Vienna
 localityName = Vienna
 organizationName = MIO-2
-commonName = ble
+commonName = ble-publisher
 EOF
 
-openssl req -new -config ble.cnf -key ble.key -out ble.csr -batch
+openssl req -new \
+  -config ble.cnf \
+  -key ble.key \
+  -out ble.csr \
+  -batch
 
 cd ../myca
-openssl ca -config ca.cnf -keyfile safe/ca.key -cert certs/ca.crt -policy signing_policy \
-  -extensions signing_client_req -passin pass:"$PASSPHRASE" \
-  -out certs/ble.crt -outdir certs/ -in ../ble_engine/ble.csr -notext -batch
 
-cp certs/ble.crt ../ble_engine/
-cp certs/ca.crt ../ble_engine/
+openssl ca \
+  -config ca.cnf \
+  -keyfile safe/ca.key \
+  -cert certs/ca.crt \
+  -policy signing_policy \
+  -extensions signing_client_req \
+  -passin pass:"$PASSPHRASE" \
+  -out certs/ble.crt \
+  -outdir certs/ \
+  -in ../ble/ble.csr \
+  -notext \
+  -days 3650 \
+  -batch
 
+cp certs/ble.crt ../ble/
+cp certs/ca.crt ../ble/
 
+# ── Summary ─────────────────────────────────────────────────────
 
 echo ""
-echo "Done. Certificates generated:"
-echo "  CA cert:         myca/certs/ca.crt; mosquitto/ca.crt"
-echo "  Mosquitto cert:  myca/certs/mosquitto.crt  +  mosquitto/mosquitto.crt"
-echo "  Client cert:     myca/certs/client.crt"
-
-
-
+echo "--------------------------------------------------"
+echo " TLS certificates successfully generated"
+echo "--------------------------------------------------"
+echo ""
+echo "CA:"
+echo "  myca/certs/ca.crt"
+echo ""
+echo "Mosquitto broker:"
+echo "  mosquitto/mosquitto.crt"
+echo "  mosquitto/mosquitto.key"
+echo ""
+echo "MQTT Client:"
+echo "  client/client.crt"
+echo "  client/client.key"
+echo ""
+echo "BLE Publisher:"
+echo "  ble/ble.crt"
+echo "  ble/ble.key"
+echo ""
+echo "Ready for container builds."
+echo ""
