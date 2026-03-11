@@ -68,14 +68,22 @@ EOF
 # mosquitto.conf
 # ─────────────────────────────────────────────────────────────
 cat > "$MOSQ_DIR/mosquitto.conf" <<'EOF'
+# Mosquitto MQTT broker configuration file with TLS support
 persistence true
 persistence_location /mosquitto/data
 
 log_dest stdout
+
 log_type error
 log_type warning
 log_type notice
 log_type information
+log_type subscribe
+log_type unsubscribe
+log_type websockets
+
+connection_messages true
+log_timestamp true
 
 listener 8883
 
@@ -96,6 +104,7 @@ EOF
 # Mosquitto Containerfile
 # ─────────────────────────────────────────────────────────────
 cat > "$MOSQ_DIR/Containerfile" <<'EOF'
+# Containerfile for Mosquitto MQTT broker with TLS support
 FROM docker.io/eclipse-mosquitto:latest
 
 COPY certs/* /mosquitto/config/
@@ -109,6 +118,7 @@ EOF
 # Client Containerfile
 # ─────────────────────────────────────────────────────────────
 cat > "$CLIENT_DIR/Containerfile" <<'EOF'
+# Containerfile for MQTT client with TLS support
 FROM debian:stable-slim
 
 RUN apt-get update \
@@ -127,6 +137,7 @@ EOF
 # MQTT client
 # ─────────────────────────────────────────────────────────────
 cat > "$CLIENT_DIR/main.py" <<'EOF'
+# Client code for MQTT subscriber with TLS support
 import paho.mqtt.client as mqtt
 
 BROKER = "mosquitto"
@@ -168,6 +179,16 @@ client.tls_insecure_set(True)
 
 client.connect(BROKER, PORT)
 client.loop_forever()
+EOF
+
+cat > "$CLIENT_DIR/entrypoint.sh" <<'EOF'
+#!/bin/bash
+echo ""
+echo ""
+#entrypoint.sh
+printf "MQTT Client container started...\n"
+
+exec python3 main.py
 EOF
 
 echo ""

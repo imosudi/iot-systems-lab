@@ -13,13 +13,13 @@ from artifacts import device_id, temp_uuid, hum_uuid, service_uuid
 
 import paho.mqtt.client as mqtt
 
-#BROKER = "mosquitto"
-BROKER = "localhost"
+BROKER = "mosquitto"
 PORT   = 8883
 
 CA_CERT  = "/ble_certs/certs/ca.crt"
 CRT_FILE = "/ble_certs/certs/ble.crt"
 KEY_FILE = "/ble_certs/certs/ble.key"
+
 
 TOPIC_TEMPERATURE = "sensor/temperature"
 TOPIC_HUMIDITY    = "sensor/humidity"
@@ -110,7 +110,7 @@ def notification_handler(uuid, properties):
         ble.disconnect()
         ble.ensure_connected(device_id)
         return
-
+    print(f"[{local_time()}] {latest_temperature:.2f} °C, {latest_humidity:.2f} %")
     if updated:
         print(f"[{local_time()}] {latest_temperature:.2f} °C, {latest_humidity:.2f} %")
 

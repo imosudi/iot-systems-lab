@@ -1,7 +1,0 @@
-FROM docker.io/eclipse-mosquitto:latest
-
-COPY certs/* /mosquitto/config/
-
-RUN touch /mosquitto/config/passwd \
- && chmod 600 /mosquitto/config/* \
- && chown mosquitto:mosquitto /mosquitto/config/*
