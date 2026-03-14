@@ -1,26 +1,22 @@
 #!/bin/bash
-# tlscertsops.sh - TLS certificate generation for Mosquitto broker and clients
+# tlscertsops.sh - TLS certificate generation for Mosquitto, clients, BLE, InfluxDB, and Node-RED
 
 set -e
 
 echo ""
-echo " TLS certificate generation for Mosquitto broker and clients"
+echo " TLS certificate generation for IoT lab services"
 echo ""
 
 # ── Clean previous lab artifacts if they exist ───────────────────
-
 echo "Cleaning previous TLS artifacts..."
-
-# ── Clean previous lab artifacts if they exist ───────────────────
-
-echo "Cleaning previous TLS artifacts..."
-
 for dir in \
     ./ble_engine/certs \
     ./client \
     ./iot_storage \
     ./lab-storage \
     ./mosquitto \
+    ./influxdb \
+    ./backend \
     ./tlscertsops
 do
     if [ -d "$dir" ]; then
@@ -42,17 +38,16 @@ cd tlscertsops
 read -rsp "Enter pass phrase for CA key: " PASSPHRASE && echo
 
 # ── Directory structure ─────────────────────────────────────────
-
 mkdir -p mosquitto
 mkdir -p client
 mkdir -p ble
+mkdir -p influxdb
+mkdir -p backend
 mkdir -p myca/{safe,certs}
 
 # ── CA setup ───────────────────────────────────────────────────
-
 echo ""
 echo "Setting up Certificate Authority..."
-
 cd myca
 
 cat > ca.cnf << EOF
@@ -99,15 +94,12 @@ touch index.txt
 echo '01' > serial.txt
 
 echo "Generating CA private key..."
-
 openssl genrsa -des3 \
   -passout pass:"$PASSPHRASE" \
   -out safe/ca.key 2048
-
 chmod 400 safe/ca.key
 
 echo "Generating CA certificate..."
-
 openssl req -new -x509 \
   -config ca.cnf \
   -key safe/ca.key \
@@ -117,12 +109,9 @@ openssl req -new -x509 \
   -batch
 
 # ── Mosquitto broker certificate ───────────────────────────────
-
 echo ""
 echo "Generating Mosquitto broker certificate..."
-
 cd ../mosquitto
-
 openssl genrsa -out mosquitto.key 2048
 chmod 400 mosquitto.key
 
@@ -154,7 +143,6 @@ openssl req -new \
   -batch
 
 cd ../myca
-
 openssl ca \
   -config ca.cnf \
   -keyfile safe/ca.key \
@@ -173,12 +161,9 @@ cp certs/mosquitto.crt ../mosquitto/
 cp certs/ca.crt ../mosquitto/
 
 # ── MQTT client certificate ────────────────────────────────────
-
 echo ""
 echo "Generating MQTT client certificate..."
-
 cd ../client
-
 openssl genrsa -out client.key 2048
 chmod 400 client.key
 
@@ -202,7 +187,6 @@ openssl req -new \
   -batch
 
 cd ../myca
-
 openssl ca \
   -config ca.cnf \
   -keyfile safe/ca.key \
@@ -221,12 +205,9 @@ cp certs/client.crt ../client/
 cp certs/ca.crt ../client/
 
 # ── BLE publisher certificate ──────────────────────────────────
-
 echo ""
 echo "Generating BLE publisher certificate..."
-
 cd ../ble
-
 openssl genrsa -out ble.key 2048
 chmod 400 ble.key
 
@@ -250,7 +231,6 @@ openssl req -new \
   -batch
 
 cd ../myca
-
 openssl ca \
   -config ca.cnf \
   -keyfile safe/ca.key \
@@ -268,8 +248,101 @@ openssl ca \
 cp certs/ble.crt ../ble/
 cp certs/ca.crt ../ble/
 
-# ── Summary ─────────────────────────────────────────────────────
+# ── InfluxDB server certificate ───────────────────────────────
+echo ""
+echo "Generating InfluxDB server certificate..."
+cd ../influxdb
+openssl genrsa -out influxdb.key 2048
+chmod 400 influxdb.key
 
+cat > influxdb.cnf << EOF
+[ req ]
+prompt=no
+distinguished_name = distinguished_name
+req_extensions = extensions
+
+[ distinguished_name ]
+countryName = AT
+stateOrProvinceName = Vienna
+organizationName = MIO-2
+commonName = influxdb
+
+[ extensions ]
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = influxdb
+DNS.2 = localhost
+EOF
+
+openssl req -new \
+  -config influxdb.cnf \
+  -key influxdb.key \
+  -out influxdb.csr \
+  -batch
+
+cd ../myca
+openssl ca \
+  -config ca.cnf \
+  -keyfile safe/ca.key \
+  -cert certs/ca.crt \
+  -policy signing_policy \
+  -extensions signing_node_req \
+  -passin pass:"$PASSPHRASE" \
+  -out certs/influxdb.crt \
+  -outdir certs/ \
+  -in ../influxdb/influxdb.csr \
+  -notext \
+  -days 3650 \
+  -batch
+
+cp certs/influxdb.crt ../influxdb/
+cp certs/ca.crt ../influxdb/
+
+# ── Node-RED backend client certificate ────────────────────────
+echo ""
+echo "Generating Node-RED (backend) client certificate..."
+cd ../backend
+openssl genrsa -out backend.key 2048
+chmod 400 backend.key
+
+cat > backend.cnf << EOF
+[ req ]
+prompt=no
+distinguished_name = distinguished_name
+
+[ distinguished_name ]
+countryName = AT
+stateOrProvinceName = Vienna
+organizationName = MIO-2
+commonName = backend
+EOF
+
+openssl req -new \
+  -config backend.cnf \
+  -key backend.key \
+  -out backend.csr \
+  -batch
+
+cd ../myca
+openssl ca \
+  -config ca.cnf \
+  -keyfile safe/ca.key \
+  -cert certs/ca.crt \
+  -policy signing_policy \
+  -extensions signing_client_req \
+  -passin pass:"$PASSPHRASE" \
+  -out certs/backend.crt \
+  -outdir certs/ \
+  -in ../backend/backend.csr \
+  -notext \
+  -days 3650 \
+  -batch
+
+cp certs/backend.crt ../backend/
+cp certs/ca.crt ../backend/
+
+# ── Summary ─────────────────────────────────────────────────────
 echo ""
 echo "--------------------------------------------------"
 echo " TLS certificates successfully generated"
@@ -290,8 +363,15 @@ echo "BLE Publisher:"
 echo "  ble/ble.crt"
 echo "  ble/ble.key"
 echo ""
+echo "InfluxDB server:"
+echo "  influxdb/influxdb.crt"
+echo "  influxdb/influxdb.key"
+echo ""
+echo "Node-RED backend client:"
+echo "  backend/backend.crt"
+echo "  backend/backend.key"
+echo ""
 echo "Ready for container builds."
 echo ""
-echo ""
-echo " Run: ./containersmgt.sh    "
+echo " Run: ./containersmgt.sh "
 echo ""

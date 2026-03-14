@@ -1,43 +1,55 @@
-Update
 #!/usr/bin/env bash
-#containersmgt.sh - Setup and management of IoT lab containers
+# containersmgt.sh - Setup and management of IoT lab containers
 
 set -euo pipefail
 
 PROJECT_DIR="$(pwd)"
 CERT_DIR="$PROJECT_DIR/tlscertsops"
+
 MOSQ_DIR="$PROJECT_DIR/mosquitto"
 CLIENT_DIR="$PROJECT_DIR/client"
 BLE_DIR="$PROJECT_DIR/ble_engine"
+
+INFLUX_DIR="$PROJECT_DIR/influxdb"
+BACKEND_DIR="$PROJECT_DIR/backend"
 
 DATA_DIR="$PROJECT_DIR/iot_storage"
 LAB_DIR="$PROJECT_DIR/lab-storage"
 
 echo "Setting up IoT lab environment..."
 
-# ─────────────────────────────────────────────────────────────
-# Directories
-# ─────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────
+# Directory structure
+# ─────────────────────────────────────────────
 mkdir -p \
   "$MOSQ_DIR/certs" \
   "$CLIENT_DIR/certs" \
   "$BLE_DIR/certs" \
+  "$INFLUX_DIR/certs" \
+  "$BACKEND_DIR/certs" \
   "$DATA_DIR/mosquitto-data-storage" \
   "$DATA_DIR/mosquitto-log-storage" \
+  "$DATA_DIR/influxdb-storage" \
   "$LAB_DIR"
 
-# ─────────────────────────────────────────────────────────────
-# Copy certificates
-# ─────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────
+# Copy TLS certificates
+# ─────────────────────────────────────────────
+
+echo "Copying TLS certificates..."
+
 cp "$CERT_DIR/mosquitto/"{ca.crt,mosquitto.crt,mosquitto.key} "$MOSQ_DIR/certs/"
 cp "$CERT_DIR/client/"{ca.crt,client.crt,client.key} "$CLIENT_DIR/certs/"
 cp "$CERT_DIR/ble/"{ca.crt,ble.crt,ble.key} "$BLE_DIR/certs/"
+cp "$CERT_DIR/influxdb/"{ca.crt,influxdb.crt,influxdb.key} "$INFLUX_DIR/certs/"
+cp "$CERT_DIR/backend/"{ca.crt,backend.crt,backend.key} "$BACKEND_DIR/certs/"
 
-# ─────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────
 # podman-compose.yml
-# ─────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────
+
 cat > "$PROJECT_DIR/podman-compose.yml" <<EOF
-version: "3"
+version: "3.9"
 
 services:
 
@@ -63,8 +75,8 @@ services:
     ports:
       - "8883:8883"
     volumes:
-      - ./iot-systems-lab/iot_storage/mosquitto-data-storage:/mosquitto/data
-      - ./iot-systems-lab/iot_storage/mosquitto-log-storage:/mosquitto/log
+      - ./iot_storage/mosquitto-data-storage:/mosquitto/data
+      - ./iot_storage/mosquitto-log-storage:/mosquitto/log
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:Z
     healthcheck:
       test: ["CMD", "mosquitto_sub", "-h", "localhost", "-t", "test", "-C", "1"]
@@ -78,13 +90,44 @@ services:
     depends_on:
       mosquitto:
         condition: service_healthy
+
+  influxdb:
+    image: docker.io/library/influxdb:2.7
+    container_name: influxdb
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    environment:
+      - TZ=Europe/Vienna
+    volumes:
+      - ./iot_storage/influxdb-storage:/var/lib/influxdb2
+      - ./influxdb/certs:/certs:ro
+
+  backend:
+    image: docker.io/nodered/node-red:3.1.0
+    container_name: backend
+    restart: unless-stopped
+    ports:
+      - "1880:1880"
+    volumes:
+      - ./backend:/data
+      - ./backend/certs:/certs:ro
+    environment:
+      - TZ=Europe/Vienna
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+      influxdb:
+        condition: service_started
 EOF
 
-# ─────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────
 # mosquitto.conf
-# ─────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────
+
 cat > "$MOSQ_DIR/mosquitto.conf" <<'EOF'
 # Mosquitto MQTT broker configuration file with TLS support
+
 persistence true
 persistence_location /mosquitto/data
 
@@ -96,7 +139,6 @@ log_type notice
 log_type information
 log_type subscribe
 log_type unsubscribe
-log_type websockets
 
 connection_messages true
 log_timestamp true
@@ -116,11 +158,11 @@ require_certificate true
 use_identity_as_username true
 EOF
 
-# ─────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────
 # Mosquitto Containerfile
-# ─────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────
+
 cat > "$MOSQ_DIR/Containerfile" <<'EOF'
-# Containerfile for Mosquitto MQTT broker with TLS support
 FROM docker.io/eclipse-mosquitto:latest
 
 COPY certs/* /mosquitto/config/
@@ -130,25 +172,12 @@ RUN touch /mosquitto/config/passwd \
  && chown mosquitto:mosquitto /mosquitto/config/*
 EOF
 
-# ─────────────────────────────────────────────────────────────
-# Client Entrypoint
-# ─────────────────────────────────────────────────────────────
-cat > "$CLIENT_DIR/Containerfile" <<'EOF'
-#!/bin/bash
-echo ""
-echo ""
-#entrypoint.sh
-printf "MQTT [BLE Subscriber] container started...\n"
+# ─────────────────────────────────────────────
+# MQTT client container
+# ─────────────────────────────────────────────
 
-exec python3 -u main.py
-EOF
-
-# ─────────────────────────────────────────────────────────────
-# Client Containerfile
-# ─────────────────────────────────────────────────────────────
 cat > "$CLIENT_DIR/Containerfile" <<'EOF'
-# Containerfile for MQTT client with TLS support
-FROM debian:stable-slim
+FROM docker.io/library/debian:stable-slim
 
 RUN apt-get update \
  && apt-get install -y python3 python3-paho-mqtt \
@@ -160,17 +189,29 @@ COPY certs /client/certs
 COPY entrypoint.sh .
 COPY main.py .
 
-RUN chmod a+x entrypoint.sh
-
+RUN chmod +x entrypoint.sh
 
 CMD ["./entrypoint.sh"]
 EOF
 
-# ─────────────────────────────────────────────────────────────
-# MQTT client
-# ─────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────
+# MQTT Client Entrypoint
+# ─────────────────────────────────────────────
+
+cat > "$CLIENT_DIR/entrypoint.sh" <<'EOF'
+#!/bin/bash
+echo ""
+echo "MQTT Client container started..."
+echo ""
+
+exec python3 -u main.py
+EOF
+
+# ─────────────────────────────────────────────
+# MQTT client code
+# ─────────────────────────────────────────────
+
 cat > "$CLIENT_DIR/main.py" <<'EOF'
-# Client code for MQTT subscriber with TLS support
 import paho.mqtt.client as mqtt
 
 BROKER = "mosquitto"
@@ -185,17 +226,14 @@ CA_CERT = "/client/certs/ca.crt"
 CERT = "/client/certs/client.crt"
 KEY = "/client/certs/client.key"
 
-
 def on_connect(client, userdata, flags, reason_code, properties):
     print("Connected:", reason_code)
     for t in TOPICS:
         client.subscribe(t)
         print("Subscribed:", t)
 
-
 def on_message(client, userdata, msg):
     print(f"[{msg.topic}] {msg.payload.decode()}")
-
 
 client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 
@@ -208,24 +246,24 @@ client.tls_set(
     keyfile=KEY
 )
 
-client.tls_insecure_set(True)
+client.tls_insecure_set(False)
 
 client.connect(BROKER, PORT)
 client.loop_forever()
 EOF
 
-cat > "$CLIENT_DIR/entrypoint.sh" <<'EOF'
-#!/bin/bash
 echo ""
+echo "--------------------------------------"
+echo "IoT Lab Environment Setup Complete"
+echo "--------------------------------------"
 echo ""
-#entrypoint.sh
-printf "MQTT Client container started...\n"
-
-exec python3 -u main.py
-EOF
-
+echo "Start containers with:"
 echo ""
-echo "Setup complete."
+echo "   podman-compose up --build"
 echo ""
-echo "Run:"
-echo "  podman-compose up --build"
+echo "Node-RED UI:"
+echo "   http://localhost:1880"
+echo ""
+echo "InfluxDB UI:"
+echo "   http://localhost:8086"
+echo ""
