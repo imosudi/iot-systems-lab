@@ -1,4 +1,7 @@
+Update
 #!/usr/bin/env bash
+#containersmgt.sh - Setup and management of IoT lab containers
+
 set -euo pipefail
 
 PROJECT_DIR="$(pwd)"
@@ -60,8 +63,8 @@ services:
     ports:
       - "8883:8883"
     volumes:
-      - /home/mosud/Documents/per/FH/2ND Semester/IoT Systems Development/iot-systems-lab/iot_storage/mosquitto-data-storage:/mosquitto/data
-      - /home/mosud/Documents/per/FH/2ND Semester/IoT Systems Development/iot-systems-lab/iot_storage/mosquitto-log-storage:/mosquitto/log
+      - ./iot-systems-lab/iot_storage/mosquitto-data-storage:/mosquitto/data
+      - ./iot-systems-lab/iot_storage/mosquitto-log-storage:/mosquitto/log
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:Z
     healthcheck:
       test: ["CMD", "mosquitto_sub", "-h", "localhost", "-t", "test", "-C", "1"]
