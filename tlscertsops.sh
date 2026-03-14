@@ -7,6 +7,31 @@ echo ""
 echo " TLS certificate generation for Mosquitto broker and clients"
 echo ""
 
+# ── Clean previous lab artifacts if they exist ───────────────────
+
+echo "Cleaning previous TLS artifacts..."
+
+# ── Clean previous lab artifacts if they exist ───────────────────
+
+echo "Cleaning previous TLS artifacts..."
+
+for dir in \
+    ./ble_engine/certs \
+    ./client \
+    ./iot_storage \
+    ./lab-storage \
+    ./mosquitto \
+    ./tlscertsops
+do
+    if [ -d "$dir" ]; then
+        echo "Removing $dir"
+        sudo rm -rf "$dir"
+    fi
+done
+
+echo "Cleanup completed."
+echo ""
+
 mkdir -p tlscertsops
 mkdir -p iot_storage/mosquitto-data-storage
 mkdir -p iot_storage/mosquitto-log-storage
@@ -266,4 +291,7 @@ echo "  ble/ble.crt"
 echo "  ble/ble.key"
 echo ""
 echo "Ready for container builds."
+echo ""
+echo ""
+echo " Run: ./containersmgt.sh    "
 echo ""
