@@ -21,16 +21,21 @@ echo "Setting up IoT lab environment..."
 # ─────────────────────────────────────────────
 # Directory structure
 # ─────────────────────────────────────────────
+
 mkdir -p \
-  "$MOSQ_DIR/certs" \
-  "$CLIENT_DIR/certs" \
-  "$BLE_DIR/certs" \
-  "$INFLUX_DIR/certs" \
-  "$BACKEND_DIR/certs" \
-  "$DATA_DIR/mosquitto-data-storage" \
-  "$DATA_DIR/mosquitto-log-storage" \
-  "$DATA_DIR/influxdb-storage" \
-  "$LAB_DIR"
+"$MOSQ_DIR/certs" \
+"$CLIENT_DIR/certs" \
+"$BLE_DIR/certs" \
+"$INFLUX_DIR/certs" \
+"$BACKEND_DIR/certs" \
+"$DATA_DIR/mosquitto-data-storage" \
+"$DATA_DIR/mosquitto-log-storage" \
+"$DATA_DIR/influxdb-storage" \
+"$LAB_DIR"
+
+# Fix Node-RED permission problem
+# Node-RED runs as UID 1000
+chown -R 1000:1000 "$BACKEND_DIR" || true
 
 # ─────────────────────────────────────────────
 # Copy TLS certificates
@@ -38,11 +43,11 @@ mkdir -p \
 
 echo "Copying TLS certificates..."
 
-cp "$CERT_DIR/mosquitto/"{ca.crt,mosquitto.crt,mosquitto.key} "$MOSQ_DIR/certs/"
-cp "$CERT_DIR/client/"{ca.crt,client.crt,client.key} "$CLIENT_DIR/certs/"
-cp "$CERT_DIR/ble/"{ca.crt,ble.crt,ble.key} "$BLE_DIR/certs/"
-cp "$CERT_DIR/influxdb/"{ca.crt,influxdb.crt,influxdb.key} "$INFLUX_DIR/certs/"
-cp "$CERT_DIR/backend/"{ca.crt,backend.crt,backend.key} "$BACKEND_DIR/certs/"
+cp -f "$CERT_DIR/mosquitto/"{ca.crt,mosquitto.crt,mosquitto.key} "$MOSQ_DIR/certs/"
+cp -f "$CERT_DIR/client/"{ca.crt,client.crt,client.key} "$CLIENT_DIR/certs/"
+cp -f "$CERT_DIR/ble/"{ca.crt,ble.crt,ble.key} "$BLE_DIR/certs/"
+cp -f "$CERT_DIR/influxdb/"{ca.crt,influxdb.crt,influxdb.key} "$INFLUX_DIR/certs/"
+cp -f "$CERT_DIR/backend/"{ca.crt,backend.crt,backend.key} "$BACKEND_DIR/certs/"
 
 # ─────────────────────────────────────────────
 # podman-compose.yml
@@ -75,8 +80,8 @@ services:
     ports:
       - "8883:8883"
     volumes:
-      - ./iot_storage/mosquitto-data-storage:/mosquitto/data
-      - ./iot_storage/mosquitto-log-storage:/mosquitto/log
+      - ./iot_storage/mosquitto-data-storage:/mosquitto/data:Z
+      - ./iot_storage/mosquitto-log-storage:/mosquitto/log:Z
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:Z
     healthcheck:
       test: ["CMD", "mosquitto_sub", "-h", "localhost", "-t", "test", "-C", "1"]
@@ -100,8 +105,8 @@ services:
     environment:
       - TZ=Europe/Vienna
     volumes:
-      - ./iot_storage/influxdb-storage:/var/lib/influxdb2
-      - ./influxdb/certs:/certs:ro
+      - ./iot_storage/influxdb-storage:/var/lib/influxdb2:Z
+      - ./influxdb/certs:/certs:ro,Z
 
   backend:
     image: docker.io/nodered/node-red:3.1.0
@@ -110,8 +115,8 @@ services:
     ports:
       - "1880:1880"
     volumes:
-      - ./backend:/data
-      - ./backend/certs:/certs:ro
+      - ./backend:/data:Z
+      - ./backend/certs:/certs:ro,Z
     environment:
       - TZ=Europe/Vienna
     depends_on:
@@ -126,8 +131,6 @@ EOF
 # ─────────────────────────────────────────────
 
 cat > "$MOSQ_DIR/mosquitto.conf" <<'EOF'
-# Mosquitto MQTT broker configuration file with TLS support
-
 persistence true
 persistence_location /mosquitto/data
 
@@ -208,7 +211,7 @@ exec python3 -u main.py
 EOF
 
 # ─────────────────────────────────────────────
-# MQTT client code
+# MQTT Client Code
 # ─────────────────────────────────────────────
 
 cat > "$CLIENT_DIR/main.py" <<'EOF'
