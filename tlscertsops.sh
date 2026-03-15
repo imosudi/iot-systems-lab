@@ -28,14 +28,15 @@ done
 echo "Cleanup completed."
 echo ""
 
+
+# Request for passphrase once
+read -rsp "Enter pass phrase for CA key: " PASSPHRASE && echo
+
 mkdir -p tlscertsops
 mkdir -p iot_storage/mosquitto-data-storage
 mkdir -p iot_storage/mosquitto-log-storage
 
 cd tlscertsops
-
-# Request passphrase once
-read -rsp "Enter pass phrase for CA key: " PASSPHRASE && echo
 
 # ── Directory structure ─────────────────────────────────────────
 mkdir -p mosquitto
@@ -375,3 +376,7 @@ echo "Ready for container builds."
 echo ""
 echo " Run: ./containersmgt.sh "
 echo ""
+echo "" Initialising   IoT lab containers setup and management
+echo ""
+cd ../../
+./containersmgt.sh

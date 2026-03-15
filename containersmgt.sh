@@ -2,7 +2,7 @@
 # containersmgt.sh - Setup and management of IoT lab containers
 
 set -euo pipefail
-
+device_id="94:A9:90:1C:78:15"
 PROJECT_DIR="$(pwd)"
 CERT_DIR="$PROJECT_DIR/tlscertsops"
 
@@ -35,7 +35,9 @@ mkdir -p \
 
 # Fix Node-RED permission problem
 # Node-RED runs as UID 1000
+mkdir -p "$BACKEND_DIR"
 chown -R 1000:1000 "$BACKEND_DIR" || true
+chmod -R u+rwX "$BACKEND_DIR" || true
 
 # ─────────────────────────────────────────────
 # Copy TLS certificates
@@ -112,6 +114,7 @@ services:
     image: docker.io/nodered/node-red:3.1.0
     container_name: backend
     restart: unless-stopped
+    user: "1000:1000"
     ports:
       - "1880:1880"
     volumes:
@@ -255,14 +258,22 @@ client.connect(BROKER, PORT)
 client.loop_forever()
 EOF
 
+echo "To test BLE scanning and connection, run:"
+echo "" 
+echo '   ./bt_setup.sh "94:A9:90:1C:78:15"'
+./bt_setup.sh $device_id
+echo ""
+echo "To stop and clear all containers, volumes, and network, run:"
+echo "   ./podmanstop.sh"
+echo "" 
+
+./podmanclear.sh
+
+
 echo ""
 echo "--------------------------------------"
 echo "IoT Lab Environment Setup Complete"
 echo "--------------------------------------"
-echo ""
-echo "Start containers with:"
-echo ""
-echo "   podman-compose up --build"
 echo ""
 echo "Node-RED UI:"
 echo "   http://localhost:1880"
@@ -270,3 +281,21 @@ echo ""
 echo "InfluxDB UI:"
 echo "   http://localhost:8086"
 echo ""
+echo "MQTT broker:"
+echo "   Host: localhost"
+echo "   Port: 8883"
+echo "   TLS: Enabled (CA, client cert/key required)"
+echo ""echo "MQTT topics published by BLE container:"
+echo "   sensor/temperature"
+echo "   sensor/humidity"
+echo ""echo "MQTT client container will print received messages to its logs."
+echo ""     
+echo "Start containers with:"
+echo ""
+echo "   podman-compose up --build"
+echo ""
+echo "Use 'podman logs -f <container_name>' to view logs of individual containers."
+
+
+
+
