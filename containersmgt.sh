@@ -11,10 +11,15 @@ CLIENT_DIR="$PROJECT_DIR/client"
 BLE_DIR="$PROJECT_DIR/ble_engine"
 
 INFLUX_DIR="$PROJECT_DIR/influxdb"
+INFLUX_DATA_DIR="$PROJECT_DIR/influxdb_storage"
+INFLUX_CONFIG_DIR="$PROJECT_DIR/influxdb_config"
 BACKEND_DIR="$PROJECT_DIR/backend"
 
 DATA_DIR="$PROJECT_DIR/iot_storage"
 LAB_DIR="$PROJECT_DIR/lab-storage"
+
+INFLUXDB_USERNAME="admin"
+INFLUXDB_PASSWORD="$(pwgen -cnys 15 1)"
 
 echo "Setting up IoT lab environment..."
 
@@ -97,17 +102,33 @@ services:
         condition: service_healthy
 
   influxdb:
-    image: docker.io/library/influxdb:2.7
+    image: docker.io/library/influxdb:latest
     container_name: influxdb
     restart: unless-stopped
     ports:
       - "8086:8086"
     environment:
       - TZ=Europe/Vienna
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME="${INFLUXDB_USERNAME}"
+      - DOCKER_INFLUXDB_INIT_PASSWORD="${INFLUXDB_PASSWORD}"
+      - DOCKER_INFLUXDB_INIT_ORG=org0
+      - DOCKER_INFLUXDB_INIT_BUCKET=bucket0
     volumes:
-      - ./iot_storage/influxdb-storage:/var/lib/influxdb2:Z
+      - ./influxdb_storage:/var/lib/influxdb2:Z
+      - ./influxdb_config:/etc/influxdb2:Z
       - ./influxdb/certs:/certs:ro,Z
+    healthcheck:
+      test: ["CMD", "curl", "http://localhost:8086"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  
+  
+  
 
+  
+  
   backend:
     image: docker.io/nodered/node-red:3.1.0
     container_name: backend
@@ -256,6 +277,16 @@ client.connect(BROKER, PORT)
 client.loop_forever()
 EOF
 
+#────────────────────────────────────────────
+# InfluxDB environment variables
+#────────────────────────────────────────────
+
+cat > "$INFLUX_DIR/.env" <<EOF
+INFLUXDB_USERNAME=$INFLUXDB_USERNAME
+INFLUXDB_PASSWORD=$INFLUXDB_PASSWORD
+EOF
+
+
 echo "To test BLE scanning and connection, run:"
 echo "" 
 echo '   ./bt_setup.sh "94:A9:90:1C:78:15"'
@@ -295,5 +326,6 @@ echo ""
 echo "Use 'podman logs -f <container_name>' to view logs of individual containers."
 
 
+podman-compose up --build
 
 

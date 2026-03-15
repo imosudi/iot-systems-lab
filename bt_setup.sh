@@ -31,7 +31,7 @@ sleep 2
 
 SESSION_LOG=$(mktemp)
 PIPE_FILE=$(mktemp -u)
-BLEUUID_FILE="$(pwd)/bleuuids.txt"
+BLEUUID_FILE="$(pwd)/blueuuids.txt"
 # Store service/characteristic UUID mappings
 : > "$BLEUUID_FILE"
 mkfifo "$PIPE_FILE"

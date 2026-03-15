@@ -28,6 +28,11 @@ done
 echo "Cleanup completed."
 echo ""
 
+# Check if pwgen is installed for generating random passphrase
+if ! command -v pwgen &> /dev/null; then
+  # Install pwgen if not found (Debian/Ubuntu)
+  apt-get update && apt-get install -y pwgen
+fi  
 
 # Request for passphrase once
 read -rsp "Enter pass phrase for CA key: " PASSPHRASE && echo

@@ -223,7 +223,7 @@ client/certs/
 mosquitto/certs/
 influxdb/certs/
 backend/certs/
-labstorage/
+lab-storage/
 iot_storage/
 client/
 mosquitto/
