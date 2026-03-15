@@ -65,6 +65,9 @@ services:
     privileged: true
     volumes:
       - /run/dbus:/run/dbus:rw,z
+    depends_on:
+      mosquitto:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "pgrep", "-f", "python3 main.py"]
       interval: 5s
@@ -83,7 +86,7 @@ services:
       - ./iot_storage/mosquitto-log-storage:/mosquitto/log:Z
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:Z
     healthcheck:
-      test: ["CMD", "mosquitto_sub", "-h", "localhost", "-t", "test", "-C", "1"]
+      test: ["CMD", "mosquitto_pub", "-h", "localhost", "-t", "healthcheck", "-m", "ok"]
       interval: 5s
       retries: 5
       start_period: 5s
