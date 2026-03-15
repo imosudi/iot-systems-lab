@@ -74,10 +74,6 @@ services:
   mosquitto:
     build: mosquitto
     restart: unless-stopped
-    depends_on:
-      ble:
-        condition: service_healthy
-    environment:
       TZ: Europe/Vienna
     ports:
       - "8883:8883"
