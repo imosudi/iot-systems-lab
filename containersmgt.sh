@@ -74,6 +74,7 @@ services:
   mosquitto:
     build: mosquitto
     restart: unless-stopped
+    environment:
       TZ: Europe/Vienna
     ports:
       - "8883:8883"
