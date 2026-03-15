@@ -24,7 +24,7 @@ if ! [[ "$DEVICE_MAC" =~ ^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$ ]]; then
 fi
 
 echo "[*] Target: $DEVICE_MAC"
-sudo rfkill unblock bluetooth || true
+rfkill unblock bluetooth || true
 sudo modprobe btusb || true
 sudo systemctl restart bluetooth
 sleep 2
