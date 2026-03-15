@@ -19,7 +19,9 @@ DATA_DIR="$PROJECT_DIR/iot_storage"
 LAB_DIR="$PROJECT_DIR/lab-storage"
 
 INFLUXDB_USERNAME="admin"
-INFLUXDB_PASSWORD="$(pwgen -cnys 15 1)"
+#INFLUXDB_PASSWORD="$(pwgen -cnys 15 1)"
+#INFLUXDB_PASSWORD="$(pwgen -cnys 15 1 | tr -d "'\")(){}][+.&%$\`|\\")"
+INFLUXDB_PASSWORD="$(pwgen -cns 15 1)"
 
 echo "Setting up IoT lab environment..."
 
