@@ -108,12 +108,12 @@ services:
     ports:
       - "8086:8086"
     environment:
-      TZ=Europe/Vienna
-      DOCKER_INFLUXDB_INIT_MODE=setup
-      DOCKER_INFLUXDB_INIT_USERNAME= ${INFLUXDB_USERNAME}
-      DOCKER_INFLUXDB_INIT_PASSWORD= ${INFLUXDB_PASSWORD}
-      DOCKER_INFLUXDB_INIT_ORG=org0
-      DOCKER_INFLUXDB_INIT_BUCKET=bucket0
+      - TZ=Europe/Vienna
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME= ${INFLUXDB_USERNAME}
+      - DOCKER_INFLUXDB_INIT_PASSWORD= ${INFLUXDB_PASSWORD}
+      - DOCKER_INFLUXDB_INIT_ORG=org0
+      - DOCKER_INFLUXDB_INIT_BUCKET=bucket0
     volumes:
       - ./influxdb_storage:/var/lib/influxdb2:Z
       - ./influxdb_config:/etc/influxdb2:Z
@@ -140,7 +140,7 @@ services:
       - ./backend:/data:Z
       - ./backend/certs:/certs:ro,Z
     environment:
-      TZ=Europe/Vienna
+      - TZ=Europe/Vienna
     depends_on:
       mosquitto:
         condition: service_healthy
