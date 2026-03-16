@@ -230,4 +230,6 @@ mosquitto/
 influxdb/
 backend/
 podman-compose.yml
-bleuuids.txt
+blueuuids.txt
+influxdb_config.yml
+settings.js

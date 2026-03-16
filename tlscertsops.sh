@@ -14,6 +14,7 @@ for dir in \
     ./client \
     ./iot_storage \
     ./lab-storage \
+    ./nodered-storage \
     ./mosquitto \
     ./influxdb \
     ./backend \
@@ -40,6 +41,10 @@ read -rsp "Enter pass phrase for CA key: " PASSPHRASE && echo
 mkdir -p tlscertsops
 mkdir -p iot_storage/mosquitto-data-storage
 mkdir -p iot_storage/mosquitto-log-storage
+mkdir -p iot_storage/influxdb-storage
+mkdir -p iot_storage/nodered-storage
+sudo chown -R 1000:1000 iot_storage/nodered-storage
+chmod -R 775 iot_storage/nodered-storage
 
 cd tlscertsops
 
@@ -50,6 +55,9 @@ mkdir -p ble
 mkdir -p influxdb
 mkdir -p backend
 mkdir -p myca/{safe,certs}
+
+sudo chown -R 1000:1000 backend
+sudo chmod -R u+rwx backend
 
 # ── CA setup ───────────────────────────────────────────────────
 echo ""
@@ -385,3 +393,4 @@ echo "" Initialising   IoT lab containers setup and management
 echo ""
 cd ../../
 ./containersmgt.sh
+
