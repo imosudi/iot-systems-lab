@@ -25,6 +25,15 @@ INFLUXDB_PASSWORD="$(pwgen -cns 15 1)"
 
 echo "Setting up IoT lab environment..."
 
+echo ""
+echo "To stop and clear all containers, volumes, and network, run:"
+echo "   ./podmanstop.sh"
+echo "" 
+
+./podmanclear.sh
+
+
+
 # ─────────────────────────────────────────────
 # Directory structure
 # ─────────────────────────────────────────────
@@ -44,12 +53,10 @@ mkdir -p \
 # Fix Node-RED permission problem
 # Node-RED runs as UID 1000
 mkdir -p "$BACKEND_DIR"
-chown -R 1000:1000 "$BACKEND_DIR" || true
 chmod -R u+rwX "$BACKEND_DIR" || true
 
 # Ensure node_modules target is available and writeable for the containerized node-red user
 mkdir -p "$BACKEND_DIR/node_modules"
-chown -R 1000:1000 "$BACKEND_DIR/node_modules" || true
 chmod -R u+rwX "$BACKEND_DIR/node_modules" || true
 
 # ─────────────────────────────────────────────
@@ -144,7 +151,7 @@ services:
     ports:
       - "1880:1880"
     volumes:
-      - ./iot_storage/nodered-storage:/data:z
+      - ./iot_storage/nodered-storage:/data:Z
     environment:
       - TZ=Europe/Vienna
     depends_on:
@@ -240,15 +247,16 @@ USER root
 RUN cd /usr/src/node-red \
  && npm install node-red-contrib-influxdb
 
-RUN mkdir -p /data
+RUN mkdir -p /data/node_modules \
+ && mkdir -p /data/lib \ 
+ && mkdir -p /data/lib/flows \
+ && chown -R 1000:1000 /data
 
 COPY certs /certs
 COPY flows.json /data/
 COPY flows_cred.json /data/
 COPY settings.js /data/
 COPY package.json /data/
-
-RUN chown -R node-red:node-red /data
 
 USER node-red
 EOF
@@ -834,30 +842,34 @@ EOF
 #chown -R 1000:1000 "$BACKEND_DIR" || true
 #chmod -R u+rwX "$BACKEND_DIR" || true
 
-# Create and fix nodered-storage BEFORE copying files into it
 #────────────────────────────────────────────
-# Node-RED persistent storage
+# Node-RED persistent storage initialisation
 #────────────────────────────────────────────
 
-mkdir -p "$DATA_DIR/nodered-storage"
+NR_DIR="$DATA_DIR/nodered-storage"
 
-# allow container write access
-chmod -R 777 "$DATA_DIR/nodered-storage"
+echo "[INFO] Preparing Node-RED storage..."
 
-# fix SELinux context for podman
-chcon -Rt container_file_t "$DATA_DIR/nodered-storage" || true
+mkdir -p "$NR_DIR"
 
-sudo chown -R 1000:1000 backend
-sudo chmod -R u+rwx backend
-sudo mkdir -p backend/node_modules
-sudo chown -R 1000:1000 backend/node_modules
-sudo chmod -R u+rwx backend/node_modules
+# create expected runtime directories
+mkdir -p "$NR_DIR/node_modules"
+mkdir -p "$NR_DIR/lib"
+mkdir -p "$NR_DIR/lib/flows"
+mkdir -p "$NR_DIR/context"
 
-sudo chown -R 1000:1000 "$DATA_DIR/nodered-storage"
-sudo chmod -R u+rwx "$DATA_DIR/nodered-storage"
-sudo mkdir -p "$DATA_DIR/nodered-storage"/node_modules
-sudo chown -R 1000:1000 "$DATA_DIR/nodered-storage"/node_modules
-sudo chmod -R u+rwx "$DATA_DIR/nodered-storage"/node_modules
+
+# create runtime config file to avoid permission race
+touch "$NR_DIR/.config.runtime.json"
+ 
+# ensure Node-RED container user owns everything
+chown -R 1000:1000 "$NR_DIR"
+
+# directory permissions suitable for atomic writes
+chmod -R 775 "$NR_DIR"
+
+# SELinux compatibility (important for Podman)
+chcon -Rt container_file_t "$NR_DIR" 2>/dev/null || true
 
 # Now copy files in
 cp "$BACKEND_DIR/flows.json"      "$DATA_DIR/nodered-storage/"
@@ -866,8 +878,7 @@ cp "$BACKEND_DIR/package.json"    "$DATA_DIR/nodered-storage/"
 cp "$BACKEND_DIR/settings.js"     "$DATA_DIR/nodered-storage/"
 
 # Fix ownership of the files too
-chown -R 1000:1000 "$DATA_DIR/nodered-storage"
-chmod -R u+rwX     "$DATA_DIR/nodered-storage"
+#chmod -R u+rwX     "$DATA_DIR/nodered-storage"
 
 # ─────────────────────────────────────────────
 # mosquitto.conf
@@ -1012,13 +1023,6 @@ echo "To test BLE scanning and connection, run:"
 echo "" 
 echo '   ./bt_setup.sh "94:A9:90:1C:78:15"'
 ./bt_setup.sh $device_id
-echo ""
-echo "To stop and clear all containers, volumes, and network, run:"
-echo "   ./podmanstop.sh"
-echo "" 
-
-./podmanclear.sh
-
 
 echo ""
 echo "--------------------------------------"
@@ -1046,8 +1050,16 @@ echo "   podman-compose up --build"
 echo ""
 echo "Use 'podman logs -f <container_name>' to view logs of individual containers."
 
-sudo chown -R 1000:1000 iot_storage/nodered-storage
 chmod -R 775 iot_storage/nodered-storage
+echo "[4/8] Applying container permissions..."
+
+chmod -R 777 "$DATA_DIR"
+
+# SELinux safe
+chcon -Rt container_file_t "$DATA_DIR" 2>/dev/null || true
+
+echo "Permissions OK"
+echo
 
 podman-compose up --build
 
