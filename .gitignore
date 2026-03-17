@@ -231,5 +231,6 @@ influxdb/
 backend/
 podman-compose.yml
 blueuuids.txt
+influxdb_config/
 influxdb_config.yml
 settings.js

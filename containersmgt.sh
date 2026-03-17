@@ -141,27 +141,31 @@ services:
         condition: service_healthy
 
   influxdb:
-    image: docker.io/library/influxdb:latest
+    image: docker.io/library/influxdb:2.8
     container_name: influxdb
     restart: unless-stopped
+
     ports:
       - "8086:8086"
+
     environment:
-      - TZ=Europe/Vienna
-      - DOCKER_INFLUXDB_INIT_MODE=setup
-      - DOCKER_INFLUXDB_INIT_USERNAME= ${INFLUXDB_USERNAME}
-      - DOCKER_INFLUXDB_INIT_PASSWORD= ${INFLUXDB_PASSWORD}
-      - DOCKER_INFLUXDB_INIT_ORG=org0
-      - DOCKER_INFLUXDB_INIT_BUCKET=bucket0
+      TZ: Europe/Vienna
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: admin123
+      DOCKER_INFLUXDB_INIT_ORG: org0
+      DOCKER_INFLUXDB_INIT_BUCKET: bucket0
+
     volumes:
-      - ./influxdb_storage:/var/lib/influxdb2:Z
+      - ./iot_storage/influxdb-storage:/var/lib/influxdb2:Z
       - ./influxdb_config:/etc/influxdb2:Z
-      - ./influxdb/certs:/certs:ro,Z
+
     healthcheck:
-      test: ["CMD", "curl", "http://localhost:8086"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      test: ["CMD", "curl", "-f", "http://localhost:8086/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
   
   backend:
     build:
@@ -943,7 +947,7 @@ keyfile /mosquitto/config/mosquitto.key
 
 tls_version tlsv1.3
 
-allow_anonymous true
+allow_anonymous false
 password_file /mosquitto/config/passwd
 
 require_certificate true
