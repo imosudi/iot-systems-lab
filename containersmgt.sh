@@ -86,7 +86,7 @@ services:
     build: ble_engine
     privileged: true
     volumes:
-      - /run/dbus:/run/dbus:rw,z
+      - /run/dbus:/run/dbus:rw,Z
     
     healthcheck:
       test: ["CMD", "pgrep", "-f", "python3 main.py"]

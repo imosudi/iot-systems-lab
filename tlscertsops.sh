@@ -53,6 +53,7 @@ mkdir -p mosquitto
 mkdir -p client
 mkdir -p ble
 mkdir -p influxdb
+mkdir -p influxdb_config
 mkdir -p backend
 mkdir -p myca/{safe,certs}
 
@@ -287,6 +288,7 @@ subjectAltName = @alt_names
 [alt_names]
 DNS.1 = influxdb
 DNS.2 = localhost
+DNS.3 = iotgw
 EOF
 
 openssl req -new \
