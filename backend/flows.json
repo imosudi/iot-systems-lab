@@ -1,0 +1,57 @@
+[
+  {
+    "id": "mqtt_in",
+    "type": "mqtt in",
+    "z": "flow1",
+    "name": "MQTT In",
+    "topic": "sensor/#",
+    "qos": "2",
+    "datatype": "auto",
+    "broker": "mqtt_broker",
+    "x": 100,
+    "y": 100,
+    "wires": [["debug_out"]]
+  },
+
+  {
+    "id": "debug_out",
+    "type": "debug",
+    "z": "flow1",
+    "name": "Debug Out",
+    "active": true,
+    "complete": "payload",
+    "x": 300,
+    "y": 100,
+    "wires": []
+  },
+  {
+    "id": "mqtt_broker",
+    "type": "mqtt-broker",
+    "name": "Mosquitto TLS",
+    "broker": "mosquitto",
+    "port": "8883",
+    "clientid": "backend",
+    "usetls": true,
+    "tls": "tls_config",
+    "protocolVersion": "4",
+    "keepalive": "60",
+    "cleansession": true,
+    "birthTopic": "",
+    "birthQos": "0",
+    "birthPayload": "",
+    "closeTopic": "",
+    "closePayload": "",
+    "willTopic": "",
+    "willQos": "0",
+    "willPayload": ""
+  },
+  {
+    "id": "tls_config",
+    "type": "tls-config",
+    "name": "mosquitto-tls",
+    "ca": "/certs/ca.crt",
+    "cert": "/certs/backend.crt",
+    "key": "/certs/backend.key",
+    "verifyservercert": true
+  }
+]

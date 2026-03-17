@@ -1,0 +1,6 @@
+{
+ "name": "Node-RED IoT System Project Backend",
+ "description": "A backend server for IoT System Project Backend",
+ "version": "0.0.1",
+ "private": true
+} 

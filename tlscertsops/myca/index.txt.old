@@ -1,0 +1,4 @@
+V	360314201422Z		01	unknown	/O=MIO-2/CN=mosquitto
+V	360314201423Z		02	unknown	/O=MIO-2/CN=mqtt-client
+V	360314201423Z		03	unknown	/O=MIO-2/CN=ble-publisher
+V	360314201423Z		04	unknown	/O=MIO-2/CN=influxdb-server

@@ -1,0 +1,105 @@
+version: "3.9"
+
+services:
+
+  ble:
+    build: ble_engine
+    privileged: true
+    volumes:
+      - /run/dbus:/run/dbus:rw,Z
+    
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "python3 main.py"]
+      interval: 5s
+      retries: 5
+      start_period: 5s
+
+  mosquitto:
+    build: mosquitto
+    restart: unless-stopped
+    environment:
+      TZ: Europe/Vienna
+    ports:
+      - "8883:8883"
+    volumes:
+      - ./iot_storage/mosquitto-data-storage:/mosquitto/data:Z
+      - ./iot_storage/mosquitto-log-storage:/mosquitto/log:Z
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:Z
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mosquitto_sub",
+          "--cafile",
+          "/mosquitto/config/ca.crt",
+          "--cert",
+          "/mosquitto/config/mosquitto.crt",
+          "--key",
+          "/mosquitto/config/mosquitto.key",
+          "-h",
+          "localhost",
+          "-p",
+          "8883",
+          "-t",
+          "test",
+          "-C",
+          "1"
+        ]
+      interval: 5s
+      retries: 5
+      start_period: 5s
+
+    
+  client:
+    build: client
+    restart: unless-stopped
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+
+  influxdb:
+    image: docker.io/library/influxdb:2.8
+    container_name: influxdb
+    restart: unless-stopped
+
+    ports:
+      - "8086:8086"
+
+    environment:
+      TZ: Europe/Vienna
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: admin123
+      DOCKER_INFLUXDB_INIT_ORG: org0
+      DOCKER_INFLUXDB_INIT_BUCKET: bucket0
+
+    volumes:
+      - ./iot_storage/influxdb-storage:/var/lib/influxdb2:Z
+      - ./influxdb_config:/etc/influxdb2:Z
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8086/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+
+  backend:
+    build:
+      context: backend
+      args:
+        - DOCKERHUB_TAG=latest
+    container_name: backend
+    restart: unless-stopped
+    ports:
+      - "1880:1880"
+    volumes:
+      - ./iot_storage/nodered-storage:/data:Z
+    environment:
+      - TZ=Europe/Vienna
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+      influxdb:
+        condition: service_started

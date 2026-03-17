@@ -1,0 +1,22 @@
+# Node-RED backend container Containerfile
+ARG DOCKERHUB_TAG=latest
+FROM docker.io/nodered/node-red:latest
+
+#RUN cd /usr/src/node-red && npm install --save node-redcontrib-influxdb
+#RUN cd /usr/src/node-red && npm install --save node-red-contrib-influxdb
+#RUN npm install -g node-red-contrib-influxdb
+
+USER root
+
+RUN cd /usr/src/node-red  && npm install node-red-contrib-influxdb
+
+RUN mkdir -p /data/node_modules  && mkdir -p /data/lib \ 
+ && mkdir -p /data/lib/flows  && chown -R 1000:1000 /data
+
+COPY certs /certs
+COPY flows.json /data/
+COPY flows_cred.json /data/
+COPY settings.js /data/
+COPY package.json /data/
+
+USER node-red
