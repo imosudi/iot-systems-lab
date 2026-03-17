@@ -80,7 +80,7 @@ chmod 644 "$PROJECT_DIR/backend/certs/backend.key"
 # podman-compose.yml
 # ─────────────────────────────────────────────
 
-cat > "$PROJECT_DIR/podman-compose.yml" <<EOF
+cat > "$PROJECT_DIR/backup_podman-compose.yml" <<EOF
 version: "3.9"
 
 services:
@@ -166,7 +166,8 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
-  
+
+
   backend:
     build:
       context: backend
