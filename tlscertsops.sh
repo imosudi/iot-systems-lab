@@ -280,7 +280,7 @@ req_extensions = extensions
 countryName = AT
 stateOrProvinceName = Vienna
 organizationName = MIO-2
-commonName = influxdb
+commonName = influxdb-server
 
 [ extensions ]
 subjectAltName = @alt_names
@@ -395,4 +395,3 @@ echo "" Initialising   IoT lab containers setup and management
 echo ""
 cd ../../
 ./containersmgt.sh
-

@@ -65,12 +65,15 @@ chmod -R u+rwX "$BACKEND_DIR/node_modules" || true
 
 echo "Copying TLS certificates..."
 
+
+
 cp -f "$CERT_DIR/mosquitto/"{ca.crt,mosquitto.crt,mosquitto.key} "$MOSQ_DIR/certs/"
 cp -f "$CERT_DIR/client/"{ca.crt,client.crt,client.key} "$CLIENT_DIR/certs/"
 cp -f "$CERT_DIR/ble/"{ca.crt,ble.crt,ble.key} "$BLE_DIR/certs/"
 cp -f "$CERT_DIR/influxdb/"{ca.crt,influxdb.crt,influxdb.key} "$INFLUX_DIR/certs/"
 cp -f "$CERT_DIR/backend/"{ca.crt,backend.crt,backend.key} "$BACKEND_DIR/certs/"
-
+chmod 644 "$PROJECT_DIR/backend/certs/backend.key"
+#chmod 644 "$PROJECT_DIR/backend/certs/backend.crt"
 
 
 # ─────────────────────────────────────────────
@@ -106,11 +109,30 @@ services:
       - ./iot_storage/mosquitto-log-storage:/mosquitto/log:Z
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:Z
     healthcheck:
-      test: ["CMD", "mosquitto_sub", "-h", "localhost", "-t", "test", "-C", "1"]
+      test:
+        [
+          "CMD",
+          "mosquitto_sub",
+          "--cafile",
+          "/mosquitto/config/ca.crt",
+          "--cert",
+          "/mosquitto/config/mosquitto.crt",
+          "--key",
+          "/mosquitto/config/mosquitto.key",
+          "-h",
+          "localhost",
+          "-p",
+          "8883",
+          "-t",
+          "test",
+          "-C",
+          "1"
+        ]
       interval: 5s
       retries: 5
       start_period: 5s
 
+    
   client:
     build: client
     restart: unless-stopped
@@ -177,48 +199,61 @@ EOF
 #backend flows
 cat > "$BACKEND_DIR/flows.json" <<EOF
 [
-    {
-        "id": "mqtt_in",
-        "type": "mqtt in",
-        "z": "flow1",
-        "name": "MQTT In",
-        "topic": "sensor/#",
-        "qos": "2",
-        "datatype": "auto",
-        "broker": "mqtt_broker",
-        "x": 100,
-        "y": 100,
-        "wires": [["debug_out"]]
-    },
-    {
-        "id": "debug_out",
-        "type": "debug",
-        "z": "flow1",
-        "name": "Debug Out",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "payload",
-        "targetType": "msg",
-        "x": 300,
-        "y": 100,
-        "wires": []
-    },
-    {
-        "id": "mqtt_broker",
-        "type": "mqtt-broker",
-        "name": "",
-        "broker": "mosquitto",
-        "port": 8883,
-        "tls": {
-            "ca": "/certs/ca.crt",
-            "cert": "/certs/backend.crt",
-            "key": "/certs/backend.key"
-        },
-        "clientid": "",
-        "usetls": true
-    }
+  {
+    "id": "mqtt_in",
+    "type": "mqtt in",
+    "z": "flow1",
+    "name": "MQTT In",
+    "topic": "sensor/#",
+    "qos": "2",
+    "datatype": "auto",
+    "broker": "mqtt_broker",
+    "x": 100,
+    "y": 100,
+    "wires": [["debug_out"]]
+  },
+
+  {
+    "id": "debug_out",
+    "type": "debug",
+    "z": "flow1",
+    "name": "Debug Out",
+    "active": true,
+    "complete": "payload",
+    "x": 300,
+    "y": 100,
+    "wires": []
+  },
+  {
+    "id": "mqtt_broker",
+    "type": "mqtt-broker",
+    "name": "Mosquitto TLS",
+    "broker": "mosquitto",
+    "port": "8883",
+    "clientid": "backend",
+    "usetls": true,
+    "tls": "tls_config",
+    "protocolVersion": "4",
+    "keepalive": "60",
+    "cleansession": true,
+    "birthTopic": "",
+    "birthQos": "0",
+    "birthPayload": "",
+    "closeTopic": "",
+    "closePayload": "",
+    "willTopic": "",
+    "willQos": "0",
+    "willPayload": ""
+  },
+  {
+    "id": "tls_config",
+    "type": "tls-config",
+    "name": "mosquitto-tls",
+    "ca": "/certs/ca.crt",
+    "cert": "/certs/backend.crt",
+    "key": "/certs/backend.key",
+    "verifyservercert": true
+  }
 ]
 EOF
 
@@ -873,7 +908,7 @@ chcon -Rt container_file_t "$NR_DIR" 2>/dev/null || true
 
 # Now copy files in
 cp "$BACKEND_DIR/flows.json"      "$DATA_DIR/nodered-storage/"
-cp "$BACKEND_DIR/flows_cred.json" "$DATA_DIR/nodered-storage/"
+#cp "$BACKEND_DIR/flows_cred.json" "$DATA_DIR/nodered-storage/"
 cp "$BACKEND_DIR/package.json"    "$DATA_DIR/nodered-storage/"
 cp "$BACKEND_DIR/settings.js"     "$DATA_DIR/nodered-storage/"
 
@@ -908,7 +943,7 @@ keyfile /mosquitto/config/mosquitto.key
 
 tls_version tlsv1.3
 
-allow_anonymous false
+allow_anonymous true
 password_file /mosquitto/config/passwd
 
 require_certificate true
@@ -1048,7 +1083,7 @@ echo "Start containers with:"
 echo ""
 echo "   podman-compose up --build"
 echo ""
-echo "Use 'podman logs -f <container_name>' to view logs of individual containers."
+echo "Use podman logs -f <container_name> to view logs of individual containers."
 
 chmod -R 775 iot_storage/nodered-storage
 echo "[4/8] Applying container permissions..."
@@ -1059,7 +1094,7 @@ chmod -R 777 "$DATA_DIR"
 chcon -Rt container_file_t "$DATA_DIR" 2>/dev/null || true
 
 echo "Permissions OK"
-echo
+echo ""
 
 podman-compose up --build
 
