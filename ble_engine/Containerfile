@@ -6,6 +6,9 @@ RUN apt-get update && apt-get upgrade -y
 RUN apt-get install -y python3 python3-pydbus python3-paho-mqtt bluez
 
 COPY modules ./modules
+COPY certs/* /ble_certs/certs/
+RUN chown -R root:root /ble_certs/certs/
+
 COPY artifacts.py .
 COPY entrypoint.sh .
 COPY main.py .

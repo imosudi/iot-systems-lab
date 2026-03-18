@@ -2,6 +2,7 @@
 # start.sh
 
 set -e
+./build.sh
 
 MISSING=()
 
