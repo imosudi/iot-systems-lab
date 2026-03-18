@@ -165,9 +165,9 @@ def on_connect(client, userdata, flags, reason_code, properties):
 
 
 def on_message(client, userdata, msg):
-    if msg.topoc == "sensor/temperature":
+    if msg.topic == "sensor/temperature":
         print(f"[{msg.topic}] {msg.payload.decode()} °C")
-    f msg.topoc == "sensor/humidity":
+    if msg.topic == "sensor/humidity":
         print(f"[{msg.topic}] {msg.payload.decode()} %")
 
 client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
