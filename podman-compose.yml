@@ -1,0 +1,13 @@
+version: "3.9"
+
+services:
+  ble:
+    build: ble_engine
+    privileged: true
+    volumes:
+      - /run/dbus:/run/dbus:rw,Z
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "python3 main.py"]
+      interval: 5s
+      retries: 5
+      start_period: 5s
