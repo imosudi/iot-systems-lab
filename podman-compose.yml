@@ -24,4 +24,14 @@ services:
     build: client
     container_name: client
     restart: unless-stopped
+  
+  influxdb:
+    image: docker.io/library/influxdb:2.8
+    container_name: influxdb
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    environment:
+      TZ: Europe/Vienna
+
    
