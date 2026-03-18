@@ -47,3 +47,69 @@ chmod 644 "$BLE_DIR/certs/ble.key"
 
 
 # ─────────────────────────────────────────────────────────────
+# Container builds
+#
+# mosquitto
+# ─────────────────────────────────────────────────────────────
+# mosquitto.conf
+# ─────────────────────────────────────────────────────────────
+cat > "$MOSQ_DIR/mosquitto.conf" <<'EOF'
+# Mosquitto MQTT broker configuration file with TLS support
+persistence true
+persistence_location /mosquitto/data
+
+log_dest stdout
+
+log_type error
+log_type warning
+log_type notice
+log_type information
+log_type subscribe
+log_type unsubscribe
+log_type websockets
+
+connection_messages true
+log_timestamp true
+
+listener 8883
+
+cafile /mosquitto/config/ca.crt
+certfile /mosquitto/config/mosquitto.crt
+keyfile /mosquitto/config/mosquitto.key
+
+tls_version tlsv1.3
+
+allow_anonymous false
+password_file /mosquitto/config/passwd
+
+require_certificate true
+use_identity_as_username true
+EOF
+
+# ─────────────────────────────────────────────────────────────
+# Mosquitto Containerfile
+# ─────────────────────────────────────────────────────────────
+cat > "$MOSQ_DIR/Containerfile" <<'EOF'
+# Containerfile for Mosquitto MQTT broker with TLS support
+FROM docker.io/eclipse-mosquitto:latest
+
+COPY certs/* /mosquitto/config/
+
+RUN touch /mosquitto/config/passwd \
+ && chmod 600 /mosquitto/config/* \
+ && chown mosquitto:mosquitto /mosquitto/config/*
+EOF
+
+# ─────────────────────────────────────────────────────────────
+# Client Entrypoint
+# ─────────────────────────────────────────────────────────────
+cat > "$CLIENT_DIR/Containerfile" <<'EOF'
+#!/bin/bash
+echo ""
+echo ""
+#entrypoint.sh
+printf "MQTT [BLE Subscriber] container started...\n"
+
+exec python3 -u main.py
+EOF
+
