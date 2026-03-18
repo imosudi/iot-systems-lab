@@ -7,11 +7,6 @@ services:
     privileged: true
     volumes:
       - /run/dbus:/run/dbus:rw,Z
-    healthcheck:
-      test: ["CMD", "pgrep", "-f", "python3 main.py"]
-      interval: 5s
-      retries: 5
-      start_period: 5s
   mosquitto:
     build: mosquitto
     container_name: mosquitto
@@ -24,26 +19,3 @@ services:
       - ./iot_storage/mosquitto-data-storage:/mosquitto/data:Z
       - ./iot_storage/mosquitto-log-storage:/mosquitto/log:Z
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:Z
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "mosquitto_sub",
-          "--cafile",
-          "/mosquitto/config/ca.crt",
-          "--cert",
-          "/mosquitto/config/mosquitto.crt",
-          "--key",
-          "/mosquitto/config/mosquitto.key",
-          "-h",
-          "localhost",
-          "-p",
-          "8883",
-          "-t",
-          "test",
-          "-C",
-          "1"
-        ]
-      interval: 5s
-      retries: 5
-      start_period: 5s
