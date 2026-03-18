@@ -21,6 +21,7 @@ for dir in \
     ./iot_storage \
     ./lab-storage \
     ./mosquitto \
+    ./backend \
     ./tlscertsops
 do
     if [ -d "$dir" ]; then
@@ -33,8 +34,16 @@ echo "Cleanup completed."
 echo ""
 
 mkdir -p tlscertsops
-mkdir -p iot_storage/mosquitto-data-storage
-mkdir -p iot_storage/mosquitto-log-storage
+mkdir -p iot_storage/mosquitto-data-storage # I am reviewing these 2 lines later
+mkdir -p iot_storage/mosquitto-log-storage #
+
+
+mkdir -p iot_storage/influxdb-storage
+mkdir -p iot_storage/nodered-storage
+sudo chown -R 1000:1000 iot_storage/nodered-storage
+chmod -R 775 iot_storage/nodered-storage
+
+
 
 cd tlscertsops
 
@@ -46,6 +55,7 @@ PASSPHRASE=testpassphrase
 mkdir -p mosquitto
 mkdir -p client
 mkdir -p ble
+mkdir -p backend
 mkdir -p myca/{safe,certs}
 
 # ── CA setup ───────────────────────────────────────────────────
@@ -264,9 +274,10 @@ openssl ca \
   -notext \
   -days 3650 \
   -batch
-
+pwd
 cp certs/ble.crt ../ble/
 cp certs/ca.crt ../ble/
+
 
 # ── Summary ─────────────────────────────────────────────────────
 
@@ -290,15 +301,17 @@ echo "BLE Publisher:"
 echo "  ble/ble.crt"
 echo "  ble/ble.key"
 echo ""
+echo "Influxdb :"
+echo "  backend/ble.crt"
+echo "  backend/ble.key"
+echo ""
 echo "Ready for container builds."
 echo ""
 echo ""
 echo " Run: ./containersmgt.sh    "
 echo ""
 
-pwd
 
 cd ../../
 
-pwd 
 ./containersmgt.sh 

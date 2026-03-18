@@ -33,5 +33,21 @@ services:
       - "8086:8086"
     environment:
       TZ: Europe/Vienna
-
-   
+  backend:
+    build:
+      context: backend
+      args:
+        - DOCKERHUB_TAG=latest
+    container_name: backend
+    restart: unless-stopped
+    ports:
+      - "1880:1880"
+    volumes:
+      - ./iot_storage/nodered-storage:/data:Z
+    environment:
+      - TZ=Europe/Vienna
+    depends_on:
+      mosquitto:
+        condition: service_started
+      influxdb:
+        condition: service_started
