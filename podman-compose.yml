@@ -22,8 +22,6 @@ services:
 
   client:
     build: client
-    CONainer_name: client
+    container_name: client
     restart: unless-stopped
-    depends_on:
-      mosquitto:
-        condition: service_healthy
+   
