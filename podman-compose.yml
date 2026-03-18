@@ -24,6 +24,9 @@ services:
     build: client
     container_name: client
     restart: unless-stopped
+    depends_on:
+      mosquitto:
+        condition: service_started
   
   influxdb:
     image: docker.io/library/influxdb:2.8
