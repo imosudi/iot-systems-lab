@@ -48,9 +48,8 @@ chmod 644 "$BLE_DIR/certs/ble.key"
 
 # ─────────────────────────────────────────────────────────────
 # Container builds
-#
-# mosquitto
 # ─────────────────────────────────────────────────────────────
+# MQTT Broker: mosquitto
 # mosquitto.conf
 # ─────────────────────────────────────────────────────────────
 cat > "$MOSQ_DIR/mosquitto.conf" <<'EOF'
@@ -100,16 +99,90 @@ RUN touch /mosquitto/config/passwd \
  && chown mosquitto:mosquitto /mosquitto/config/*
 EOF
 
+
+# MQTT Test Client
 # ─────────────────────────────────────────────────────────────
 # Client Entrypoint
 # ─────────────────────────────────────────────────────────────
-cat > "$CLIENT_DIR/Containerfile" <<'EOF'
+cat > "$CLIENT_DIR/entrypoint.sh" <<'EOF'
 #!/bin/bash
-echo ""
-echo ""
 #entrypoint.sh
-printf "MQTT [BLE Subscriber] container started...\n"
+echo ""
+echo ""
+printf "MQTT [Test BLE Subscriber] container started...\n"
 
 exec python3 -u main.py
 EOF
 
+# ─────────────────────────────────────────────────────────────
+# Client Containerfile
+# ─────────────────────────────────────────────────────────────
+cat > "$CLIENT_DIR/Containerfile" <<'EOF'
+# Containerfile for MQTT client with TLS support
+FROM debian:stable-slim
+
+RUN apt-get update \
+ && apt-get install -y python3 python3-paho-mqtt \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /client
+
+COPY certs /client/certs
+COPY entrypoint.sh .
+COPY main.py .
+
+RUN chmod a+x entrypoint.sh
+
+
+CMD ["./entrypoint.sh"]
+EOF
+
+# ─────────────────────────────────────────────────────────────
+# MQTT Python client
+# ─────────────────────────────────────────────────────────────
+cat > "$CLIENT_DIR/main.py" <<'EOF'
+# Client code for MQTT subscriber with TLS support
+import paho.mqtt.client as mqtt
+
+BROKER = "mosquitto"
+PORT = 8883
+
+TOPICS = [
+    "sensor/temperature",
+    "sensor/humidity"
+]
+
+CA_CERT = "/client/certs/ca.crt"
+CERT = "/client/certs/client.crt"
+KEY = "/client/certs/client.key"
+
+
+def on_connect(client, userdata, flags, reason_code, properties):
+    print("Connected:", reason_code)
+    for t in TOPICS:
+        client.subscribe(t)
+        print("Subscribed:", t)
+
+
+def on_message(client, userdata, msg):
+    if msg.topoc == "sensor/temperature":
+        print(f"[{msg.topic}] {msg.payload.decode()} °C")
+    f msg.topoc == "sensor/humidity":
+        print(f"[{msg.topic}] {msg.payload.decode()} %")
+
+client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+
+client.on_connect = on_connect
+client.on_message = on_message
+
+client.tls_set(
+    ca_certs=CA_CERT,
+    certfile=CERT,
+    keyfile=KEY
+)
+
+client.tls_insecure_set(True)
+
+client.connect(BROKER, PORT)
+client.loop_forever()
+EOF

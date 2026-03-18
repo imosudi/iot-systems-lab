@@ -19,3 +19,11 @@ services:
       - ./iot_storage/mosquitto-data-storage:/mosquitto/data:Z
       - ./iot_storage/mosquitto-log-storage:/mosquitto/log:Z
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:Z
+
+  client:
+    build: client
+    CONainer_name: client
+    restart: unless-stopped
+    depends_on:
+      mosquitto:
+        condition: service_healthy
