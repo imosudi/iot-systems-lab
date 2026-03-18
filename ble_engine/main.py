@@ -28,9 +28,9 @@ TOPIC_HUMIDITY    = "sensor/humidity"
 
 def on_connect(client, userdata, flags, reason_code, properties):
     if reason_code == 0:
-        print("[mqtt] Connected successfully")
+        print("[mqtt] BLE Connected successfully")
     else:
-        print(f"[mqtt] Connection failed: {reason_code}")
+        print(f"[mqtt] BLE Connection failed: {reason_code}")
 
 
 def on_disconnect(client, userdata, flags, reason_code, properties):
