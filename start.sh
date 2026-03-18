@@ -2,6 +2,7 @@
 # start.sh
 
 set -e
+./tlscertsops.sh
 ./build.sh
 
 MISSING=()

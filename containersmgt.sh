@@ -40,7 +40,8 @@ cp "$CERT_DIR/client/"{ca.crt,client.crt,client.key} "$CLIENT_DIR/certs/"
 
 # BLE
 cp "$CERT_DIR/ble/"{ca.crt,ble.crt,ble.key} "$BLE_DIR/certs/"
-
+chmod 644 "$BLE_DIR/certs/ble.crt"
+chmod 600 "$BLE_DIR/certs/ble.key"
 
 
 
