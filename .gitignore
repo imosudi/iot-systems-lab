@@ -211,3 +211,6 @@ ble_engine/
 client/
 tlscertsops/
 mosquitto/
+backend/
+blueuuid*
+nodered-storage/

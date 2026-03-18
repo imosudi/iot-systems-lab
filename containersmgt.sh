@@ -49,6 +49,8 @@ chmod 644 "$BLE_DIR/certs/ble.crt"
 chmod 644 "$BLE_DIR/certs/ca.crt"
 chmod 644 "$BLE_DIR/certs/ble.key"
 
+# Node-red Backend
+cp -f "$CERT_DIR/backend/"{ca.crt,backend.crt,backend.key} "$BACKEND_DIR/certs/"
 
 # Node-red Backend
 #cp -f "$CERT_DIR/backend/"{ca.crt,backend.crt,backend.key} "$BACKEND_DIR/certs/"
@@ -283,28 +285,30 @@ DOCKERHUB_TAG=latest
 # backend Containerfile
 cat > "$BACKEND_DIR/Containerfile" <<EOF
 # Node-RED backend container Containerfile
+# Node-RED backend container Containerfile
 ARG DOCKERHUB_TAG=latest
-FROM docker.io/nodered/node-red:${DOCKERHUB_TAG}
-
-#RUN cd /usr/src/node-red && npm install --save node-redcontrib-influxdb
-#RUN cd /usr/src/node-red && npm install --save node-red-contrib-influxdb
-#RUN npm install -g node-red-contrib-influxdb
+FROM docker.io/nodered/node-red:latest
 
 USER root
 
-RUN cd /usr/src/node-red \
- && npm install node-red-contrib-influxdb
+RUN cd /usr/src/node-red && npm install node-red-contrib-influxdb
 
-RUN mkdir -p /data/node_modules \
- && mkdir -p /data/lib \ 
- && mkdir -p /data/lib/flows \
- && chown -R 1000:1000 /data
+RUN mkdir -p /data/node_modules && mkdir -p /data/lib \ 
+ && mkdir -p /data/lib/flows && chown -R 1000:1000 /data
 
+# Copy certificates and set correct permissions
 COPY certs /certs
+RUN chown -R 1000:1000 /certs && \
+    chmod 644 /certs/*.crt && \
+    chmod 600 /certs/*.key
+
 COPY flows.json /data/
 COPY flows_cred.json /data/
-COPY settings.js /data/
 COPY package.json /data/
+
+# Ensure all data files have correct permissions
+RUN chown -R 1000:1000 /data/* && \
+    chmod 664 /data/*.json
 
 USER node-red
 EOF
@@ -886,7 +890,7 @@ EOF
 # Node-RED persistent storage initialisation
 #────────────────────────────────────────────
 
-NR_DIR="$DATA_DIR/nodered-storage"
+NR_DIR="$DATA_DIR/nodered-storage" #iot_storage/nodered-storage"
 
 echo "[INFO] Preparing Node-RED storage..."
 
@@ -910,9 +914,33 @@ chmod -R 775 "$NR_DIR"
 
 # SELinux compatibility (important for Podman)
 chcon -Rt container_file_t "$NR_DIR" 2>/dev/null || true
-
+#echo "$NR_DIR"
+#sleep 5
 # Now copy files in
-cp "$BACKEND_DIR/flows.json"      "$DATA_DIR/nodered-storage/"
-#cp "$BACKEND_DIR/flows_cred.json" "$DATA_DIR/nodered-storage/"
-cp "$BACKEND_DIR/package.json"    "$DATA_DIR/nodered-storage/"
-cp "$BACKEND_DIR/settings.js"     "$DATA_DIR/nodered-storage/"
+cp "$BACKEND_DIR/flows.json"     $NR_DIR #"$DATA_DIR/nodered-storage/"
+#echo "$NR_DIR 2"
+#sleep 5
+#cp "$BACKEND_DIR/flows_cred.json"  $NR_DIR #"$DATA_DIR/nodered-storage/"
+#cp "$BACKEND_DIR/package.json"     $NR_DIR #"$DATA_DIR/nodered-storage/"
+cp "$BACKEND_DIR/settings.js"      $NR_DIR #"$DATA_DIR/nodered-storage/"
+
+# Set correct permissions (Node-RED runs as user 1000)
+sudo chown -R 1000:1000  $NR_DIR #./iot_storage/nodered-storage
+HOST_UID=$(id -u)
+HOST_GID=$(id -g)
+sudo chown -R $HOST_UID:$HOST_GID ./iot_storage/nodered-storage
+
+chmod -R 755 $NR_DIR #./iot_storage/nodered-storage
+
+# Copy certificates
+#mkdir -p   ./iot_storage/nodered-storage/certs # "$NR_DIR/certs" #./iot_storage/nodered-storage/certs
+#cp -r backend/certs/*   ./iot_storage/nodered-storage/certs # "$NR_DIR" #./iot_storage/nodered-storage/certs/ 2>/dev/null || :
+#sudo chown -R 1000:1000  ./iot_storage/nodered-storage/certs # "$NR_DIR/certs" #./iot_storage/nodered-storage/
+#podman unshare chown -R 1000:1000 ./iot_storage/nodered-storage/
+
+# Remove settings.js from the volume if it exists
+podman unshare rm -f ./iot_storage/nodered-storage/settings.js
+
+# Ensure the directory is writable
+podman unshare chown 1000:1000 ./iot_storage/nodered-storage/
+podman unshare chmod 755 ./iot_storage/nodered-storage/

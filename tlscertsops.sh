@@ -278,7 +278,53 @@ pwd
 cp certs/ble.crt ../ble/
 cp certs/ca.crt ../ble/
 
+# ── Backend certificate ────────────────────────────────────
+pwd
+echo ""
+echo "Generating Backend certificate..."
 
+cd ../backend/
+
+openssl genrsa -out backend.key 2048
+chmod 400 backend.key
+
+cat > backend.cnf << EOF
+[ req ]
+prompt=no
+distinguished_name = distinguished_name
+
+[ distinguished_name ]
+countryName = AT
+stateOrProvinceName = Vienna
+localityName = Vienna
+organizationName = MIO-2
+commonName = backend-database
+EOF
+
+openssl req -new \
+  -config backend.cnf \
+  -key backend.key \
+  -out backend.csr \
+  -batch
+pwd
+cd ../myca
+pwd
+openssl ca \
+  -config ca.cnf \
+  -keyfile safe/ca.key \
+  -cert certs/ca.crt \
+  -policy signing_policy \
+  -extensions signing_client_req \
+  -passin pass:"$PASSPHRASE" \
+  -out certs/backend.crt \
+  -outdir certs/ \
+  -in ../backend/backend.csr \
+  -notext \
+  -days 3650 \
+  -batch
+
+cp certs/backend.crt ../backend/
+cp certs/ca.crt ../backend/
 # ── Summary ─────────────────────────────────────────────────────
 
 echo ""
