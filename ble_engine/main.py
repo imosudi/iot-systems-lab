@@ -94,11 +94,14 @@ def notification_handler(uuid, properties):
             updated = True
             print(f"[{local_time()}] {latest_temperature:.2f} °C, {latest_humidity:.2f} %")
             mqtt_client.publish(
-                TOPIC_TEMPERATURE,
-                f"{latest_temperature:.2f}",
-                qos=1,
-                retain=False
-            )
+                    #TOPIC_TEMPERATURE, f"{latest_temperature:.2f}", qos=1, retain=False
+                    TOPIC_TEMPERATURE, latest_temperature, qos=1, retain=False
+                 )
+            mqtt_client.publish(
+                    #TOPIC_HUMIDITY, f"{latest_humidity:.2f}", qos=1, retain=False
+                    TOPIC_HUMIDITY, latest_humidity, qos=1, retain=False
+                )
+
 
     elif uuid == hum_uuid:
         new_hum = Decoder.decode_humidity(value)
@@ -106,12 +109,14 @@ def notification_handler(uuid, properties):
             latest_humidity = new_hum
             updated = True
             print(f"[{local_time()}] {latest_temperature:.2f} °C, {latest_humidity:.2f} %")
-            mqtt_client.publish(
-                TOPIC_HUMIDITY,
-                f"{latest_humidity:.2f}",
-                qos=1,
-                retain=False
+            mqtt_client.publish( 
+                #TOPIC_HUMIDITY, f"{latest_humidity:.2f}", qos=1, retain=False
+                TOPIC_HUMIDITY, latest_humidity, qos=1, retain=False
             )
+            mqtt_client.publish(
+                    #TOPIC_TEMPERATURE, f"{latest_temperature:.2f}", qos=1, retain=False
+                    TOPIC_TEMPERATURE, latest_temperature, qos=1, retain=False
+                 )
 
     elif uuid == service_uuid:
         print(f"[{local_time()}] Service changed — reconnecting")

@@ -40,6 +40,10 @@ mkdir -p iot_storage/mosquitto-log-storage #
 
 mkdir -p iot_storage/influxdb-storage
 mkdir -p iot_storage/nodered-storage
+mkdir -p iot_storage/grafana-storage
+mkdir -p iot_storage/grafana-provisioning
+mkdir -p iot_storage/grafana-dashboards
+
 sudo chown -R 1000:1000 iot_storage/nodered-storage
 chmod -R 775 iot_storage/nodered-storage
 

@@ -7,6 +7,7 @@ services:
     privileged: true
     volumes:
       - /run/dbus:/run/dbus:rw,Z
+
   mosquitto:
     build: mosquitto
     container_name: mosquitto
@@ -27,15 +28,17 @@ services:
     depends_on:
       mosquitto:
         condition: service_started
-  
+
   influxdb:
-    image: docker.io/library/influxdb:2.8
+    image: docker.io/library/influxdb:latest
     container_name: influxdb
     restart: unless-stopped
     ports:
       - "8086:8086"
     environment:
       TZ: Europe/Vienna
+
+
   backend:
     build:
       context: backend
@@ -54,3 +57,24 @@ services:
         condition: service_started
       influxdb:
         condition: service_started
+
+  grafana:
+    image: docker.io/grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - TZ=Europe/Vienna
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-changeme}
+    volumes:
+      - ./iot_storage/grafana-storage:/var/lib/grafana:Z
+      - ./iot_storage/grafana-provisioning/:/etc/grafana/provisioning
+      - ./iot_storage/grafana-dashboards/:/etc/grafana/dashboards
+    depends_on:
+      influxdb:
+        condition: service_started
+  
+
+ 
