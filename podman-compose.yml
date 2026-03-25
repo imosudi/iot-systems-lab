@@ -3,10 +3,14 @@ version: "3.9"
 services:
   ble:
     build: ble_engine
+    restart: unless-stopped
     container_name: ble
     privileged: true
+    environment:
+      TZ: Europe/Vienna
     volumes:
       - /run/dbus:/run/dbus:rw,Z
+    
 
   mosquitto:
     build: mosquitto
@@ -36,7 +40,12 @@ services:
     ports:
       - "8086:8086"
     environment:
-      TZ: Europe/Vienna
+      - TZ=Europe/Vienna
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=${INFLUXDB_USERNAME}
+      - DOCKER_INFLUXDB_INIT_PASSWORD=${INFLUXDB_PASSWORD}
+      - DOCKER_INFLUXDB_INIT_ORG=org1
+      - DOCKER_INFLUXDB_INIT_BUCKET=bucket1
 
 
   backend:
@@ -77,4 +86,5 @@ services:
         condition: service_started
   
 
- 
+ #podman-compose up --build --force-recreate --remove-orphans
+ #podman-compose up -d --build --force-recreate --remove-orphans

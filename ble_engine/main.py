@@ -93,15 +93,17 @@ def notification_handler(uuid, properties):
             latest_temperature = new_temp
             updated = True
             print(f"[{local_time()}] {latest_temperature:.2f} °C, {latest_humidity:.2f} %")
+            data = {'time': local_time(), 'value': round(latest_temperature, 2)}
             mqtt_client.publish(
-                    #TOPIC_TEMPERATURE, f"{latest_temperature:.2f}", qos=1, retain=False
-                    TOPIC_TEMPERATURE, latest_temperature, qos=1, retain=False
-                 )
+                TOPIC_TEMPERATURE,
+                round(latest_temperature, 2),
+                qos=1,
+                retain=False
+            )
             mqtt_client.publish(
-                    #TOPIC_HUMIDITY, f"{latest_humidity:.2f}", qos=1, retain=False
-                    TOPIC_HUMIDITY, latest_humidity, qos=1, retain=False
-                )
-
+                #TOPIC_HUMIDITY, f"{latest_humidity:.2f}", qos=1, retain=False
+                TOPIC_HUMIDITY, round(latest_humidity, 2), qos=1, retain=False
+            )
 
     elif uuid == hum_uuid:
         new_hum = Decoder.decode_humidity(value)
@@ -109,13 +111,15 @@ def notification_handler(uuid, properties):
             latest_humidity = new_hum
             updated = True
             print(f"[{local_time()}] {latest_temperature:.2f} °C, {latest_humidity:.2f} %")
-            mqtt_client.publish( 
-                #TOPIC_HUMIDITY, f"{latest_humidity:.2f}", qos=1, retain=False
-                TOPIC_HUMIDITY, latest_humidity, qos=1, retain=False
+            mqtt_client.publish(
+                TOPIC_HUMIDITY,
+                round(latest_humidity, 2),
+                qos=1,
+                retain=False
             )
             mqtt_client.publish(
-                    #TOPIC_TEMPERATURE, f"{latest_temperature:.2f}", qos=1, retain=False
-                    TOPIC_TEMPERATURE, latest_temperature, qos=1, retain=False
+            #TOPIC_TEMPERATURE, f"{latest_temperature:.2f}", qos=1, retain=False
+                    TOPIC_TEMPERATURE, round(latest_temperature, 2), qos=1, retain=False
                  )
 
     elif uuid == service_uuid:
